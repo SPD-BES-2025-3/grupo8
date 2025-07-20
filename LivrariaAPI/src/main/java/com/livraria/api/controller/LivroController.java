@@ -1,11 +1,14 @@
 package com.livraria.api.controller;
 
 import com.livraria.api.model.Livro;
+import com.livraria.api.model.Resenha;
 import com.livraria.api.repository.LivroRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,5 +63,24 @@ public class LivroController {
         }
         livroRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{livroId}/resenhas")
+    public ResponseEntity<Livro> adicionarResenha(@PathVariable String livroId, @RequestBody Resenha resenha) {
+
+        Optional<Livro> livroOptional = livroRepository.findById(livroId);
+
+        if (livroOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Livro livro = livroOptional.get();
+        resenha.setDataAvaliacao(LocalDateTime.now());
+
+        livro.getResenhas().add(resenha);
+
+        Livro livroAtualizado = livroRepository.save(livro);
+
+        return ResponseEntity.ok(livroAtualizado);
     }
 }
