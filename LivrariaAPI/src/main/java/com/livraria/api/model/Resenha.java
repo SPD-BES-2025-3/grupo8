@@ -1,4 +1,4 @@
-package com.livraria.api.controller;
+package com.livraria.api.model;
 
 import lombok.Data;
 import java.time.LocalDateTime;
