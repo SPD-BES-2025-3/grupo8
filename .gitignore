@@ -1,6 +1,0 @@
-# Ignora todos os arquivos e pastas
-/*
-
-# Exceto a pasta da aplicação e o próprio .gitignore
-!/biblioteca-desktop-app/
-!/.gitignore
