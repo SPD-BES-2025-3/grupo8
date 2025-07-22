@@ -7,8 +7,9 @@ import com.j256.ormlite.table.DatabaseTable;
 
 /**
  * Classe de modelo para a entidade Livro.
+ * Contém todos os atributos de um livro e suas relações com Categoria e Autor.
  *
- * @version 1.0
+ * @version 1.1
  */
 @DatabaseTable(tableName = "livro")
 public class Livro {
@@ -36,11 +37,10 @@ public class Livro {
     @DatabaseField(canBeNull = false, foreign = true, foreignAutoRefresh = true)
     private Categoria categoria;
     
-    // Para a relação Muitos-para-Muitos com Autor
     @ForeignCollectionField(eager = true)
     private ForeignCollection<LivroAutor> autores;
 
-    // Getters e Setters
+    // Getters e Setters...
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
     public String getIsbn() { return isbn; }
@@ -59,4 +59,14 @@ public class Livro {
     public void setCategoria(Categoria categoria) { this.categoria = categoria; }
     public ForeignCollection<LivroAutor> getAutores() { return autores; }
     public void setAutores(ForeignCollection<LivroAutor> autores) { this.autores = autores; }
+
+    /**
+     * Retorna a representação em String do objeto, que é o seu título.
+     * Essencial para a exibição correta em componentes como ComboBox.
+     * @return O título do livro.
+     */
+    @Override
+    public String toString() {
+        return this.titulo;
+    }
 }

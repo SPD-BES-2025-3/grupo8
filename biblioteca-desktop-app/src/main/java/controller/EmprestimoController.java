@@ -15,7 +15,7 @@ import java.util.ResourceBundle;
 /**
  * Controlador para a tela de CRUD de Empréstimos.
  *
- * @version 1.0
+ * @version 1.1
  */
 public class EmprestimoController extends AbstractCrudController<model.Emprestimo, view.Emprestimo, Integer> implements Initializable {
 
@@ -32,28 +32,40 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
     @FXML private DatePicker dtEmprestimoPicker;
     @FXML private DatePicker dtPrevistaPicker;
     @FXML private DatePicker dtRealPicker;
-    @FXML private TextField statusField;
+    @FXML private ComboBox<String> statusComboBox;
 
     /**
      * Inicializa o controlador, mapeando colunas e populando ComboBoxes.
      *
-     * @param location  A localização usada para resolver caminhos relativos para o objeto raiz, ou null se a localização não for conhecida.
-     * @param resources Os recursos usados para localizar o objeto raiz, ou null se o objeto raiz não foi localizado.
+     * @param location  A localização usada para resolver caminhos relativos para o objeto raiz.
+     * @param resources Os recursos usados para localizar o objeto raiz.
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Mapeia colunas da tabela
         idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
         livroCol.setCellValueFactory(new PropertyValueFactory<>("livroTitulo"));
         usuarioCol.setCellValueFactory(new PropertyValueFactory<>("usuarioNome"));
         dtEmprestimoCol.setCellValueFactory(new PropertyValueFactory<>("dtEmprestimo"));
         statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        // Popula os ComboBoxes
-        livroComboBox.setItems(FXCollections.observableArrayList(Repositorios.LIVRO.loadAll()));
-        usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+        // Popula o ComboBox de status
+        statusComboBox.setItems(FXCollections.observableArrayList("Disponível", "Emprestado"));
 
         super.initialize();
+    }
+    
+    /**
+     * Sobrescreve o método refreshView para também atualizar os ComboBoxes de Livros e Usuários.
+     */
+    @Override
+    public void refreshView() {
+        super.refreshView(); // Atualiza a tabela principal
+        if (livroComboBox != null) {
+            livroComboBox.setItems(FXCollections.observableArrayList(Repositorios.LIVRO.loadAll()));
+        }
+        if (usuarioComboBox != null) {
+            usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+        }
     }
 
     @Override
@@ -83,9 +95,8 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
         }
         emprestimo.setLivro(livroComboBox.getSelectionModel().getSelectedItem());
         emprestimo.setUsuario(usuarioComboBox.getSelectionModel().getSelectedItem());
-        emprestimo.setStatus(statusField.getText());
+        emprestimo.setStatus(statusComboBox.getSelectionModel().getSelectedItem());
 
-        // Converte LocalDate para Date
         emprestimo.setDtEmprestimo(getDateFromPicker(dtEmprestimoPicker));
         emprestimo.setDtPrevistaDevolucao(getDateFromPicker(dtPrevistaPicker));
         emprestimo.setDtDevolucaoReal(getDateFromPicker(dtRealPicker));
@@ -100,9 +111,8 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
         idField.setText(String.valueOf(emprestimoModel.getId()));
         livroComboBox.setValue(emprestimoModel.getLivro());
         usuarioComboBox.setValue(emprestimoModel.getUsuario());
-        statusField.setText(emprestimoModel.getStatus());
+        statusComboBox.setValue(emprestimoModel.getStatus());
 
-        // Converte Date para LocalDate
         setPickerFromDate(dtEmprestimoPicker, emprestimoModel.getDtEmprestimo());
         setPickerFromDate(dtPrevistaPicker, emprestimoModel.getDtPrevistaDevolucao());
         setPickerFromDate(dtRealPicker, emprestimoModel.getDtDevolucaoReal());
@@ -116,7 +126,7 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
         dtEmprestimoPicker.setValue(null);
         dtPrevistaPicker.setValue(null);
         dtRealPicker.setValue(null);
-        statusField.clear();
+        statusComboBox.getSelectionModel().clearSelection();
     }
 
     @Override
@@ -126,15 +136,13 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
         dtEmprestimoPicker.setDisable(desabilitado);
         dtPrevistaPicker.setDisable(desabilitado);
         dtRealPicker.setDisable(desabilitado);
-        statusField.setDisable(desabilitado);
+        statusComboBox.setDisable(desabilitado);
     }
 
     @Override
     protected Integer getIdFromViewModel(view.Emprestimo viewModel) {
         return viewModel.getId();
     }
-
-    // --- Métodos utilitários para conversão de datas ---
 
     /**
      * Converte o LocalDate de um DatePicker para um objeto Date.

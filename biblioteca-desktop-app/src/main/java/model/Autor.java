@@ -4,12 +4,13 @@ import com.j256.ormlite.dao.ForeignCollection;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
+import java.util.Objects; // <-- Adicionar import
 
 /**
  * Classe de modelo para a entidade Autor.
  * Estende a classe Pessoa e adiciona campos específicos de Autor.
  *
- * @version 1.0
+ * @version 1.1
  */
 @DatabaseTable(tableName = "autor")
 public class Autor extends Pessoa {
@@ -20,11 +21,10 @@ public class Autor extends Pessoa {
     @DatabaseField
     private String nacionalidade;
 
-    // Relação Muitos-para-Muitos com Livro
     @ForeignCollectionField(eager = true)
     private ForeignCollection<LivroAutor> livros;
     
-    // Getters e Setters
+    // Getters e Setters...
     public String getBiografia() { return biografia; }
     public void setBiografia(String biografia) { this.biografia = biografia; }
     public String getNacionalidade() { return nacionalidade; }
@@ -34,6 +34,19 @@ public class Autor extends Pessoa {
     
     @Override
     public String toString() {
-        return nome; // Sobrescreve para mostrar o nome no ComboBox
+        return nome;
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Autor autor = (Autor) o;
+        return id == autor.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

@@ -7,7 +7,7 @@ import com.j256.ormlite.table.DatabaseTable;
  * Classe de modelo para a entidade Usuario.
  * Estende a classe Pessoa e adiciona campos específicos de Usuário.
  *
- * @version 1.0
+ * @version 1.1
  */
 @DatabaseTable(tableName = "usuario")
 public class Usuario extends Pessoa {
@@ -38,4 +38,14 @@ public class Usuario extends Pessoa {
     public void setAtivo(boolean isAtivo) { this.isAtivo = isAtivo; }
     public Cargos getCargo() { return cargo; }
     public void setCargo(Cargos cargo) { this.cargo = cargo; }
+
+    /**
+     * Retorna a representação em String do objeto, que é o seu nome.
+     * Essencial para a exibição correta em componentes como ComboBox.
+     * @return O nome do usuário.
+     */
+    @Override
+    public String toString() {
+        return this.nome;
+    }
 }

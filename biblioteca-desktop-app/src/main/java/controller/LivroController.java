@@ -10,6 +10,7 @@ import model.*;
 
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
@@ -44,14 +45,12 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Mapeia colunas da tabela
         idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
         tituloCol.setCellValueFactory(new PropertyValueFactory<>("titulo"));
         autoresCol.setCellValueFactory(new PropertyValueFactory<>("autoresNomes"));
         categoriaCol.setCellValueFactory(new PropertyValueFactory<>("categoriaNome"));
         anoCol.setCellValueFactory(new PropertyValueFactory<>("anoPublicacao"));
 
-        // Carrega dados para os controles de relacionamento
         categoriaComboBox.setItems(FXCollections.observableArrayList(Repositorios.CATEGORIA.loadAll()));
         autoresDisponiveisListView.setItems(FXCollections.observableArrayList(Repositorios.AUTOR.loadAll()));
         
@@ -66,11 +65,14 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
     @Override
     protected view.Livro modelToView(Livro model) {
         String categoriaNome = (model.getCategoria() != null) ? model.getCategoria().getNome() : "N/D";
-        
-        // Constrói a string de autores
-        String autoresNomes = model.getAutores().stream()
-                .map(livroAutor -> livroAutor.getAutor().getNome())
-                .collect(Collectors.joining(", "));
+
+        // Verifica se a coleção de autores não é nula antes de processá-la
+        String autoresNomes = "";
+        if (model.getAutores() != null) {
+            autoresNomes = model.getAutores().stream()
+                    .map(livroAutor -> livroAutor.getAutor().getNome())
+                    .collect(Collectors.joining(", "));
+        }
 
         return new view.Livro(model.getId(), model.getTitulo(), categoriaNome, autoresNomes, model.getAnoPublicacao());
     }
@@ -84,11 +86,15 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
         livro.setIsbn(isbnField.getText());
         livro.setEdicao(edicaoField.getText());
         livro.setSinopse(sinopseArea.getText());
-        livro.setAnoPublicacao(Integer.parseInt(anoField.getText()));
-        livro.setNumPaginas(Integer.parseInt(numPaginasField.getText()));
+        try {
+            livro.setAnoPublicacao(Integer.parseInt(anoField.getText()));
+            livro.setNumPaginas(Integer.parseInt(numPaginasField.getText()));
+        } catch (NumberFormatException e){
+            livro.setAnoPublicacao(0);
+            livro.setNumPaginas(0);
+        }
         livro.setCategoria(categoriaComboBox.getSelectionModel().getSelectedItem());
         
-        // A lógica de salvar os autores associados será tratada após salvar o livro
         return livro;
     }
     
@@ -96,38 +102,46 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
      * Sobrescreve o método `doCreate` para lidar com a relação N:M com Autores.
      */
     @Override
-    protected void doCreate() {
+    protected boolean doCreate() {
         try {
             Livro novoLivro = viewToModel(null);
-            Livro livroSalvo = getRepositorio().create(novoLivro); // Salva o livro primeiro
+            Livro livroSalvo = getRepositorio().create(novoLivro);
             
-            salvarAutoresAssociados(livroSalvo); // Salva as associações
+            salvarAutoresAssociados(livroSalvo);
             
-            tabela.getItems().add(modelToView(livroSalvo)); // Adiciona na tabela
+            // Recarrega o livro do banco para garantir que a coleção de autores esteja populada
+            Livro livroCompleto = getRepositorio().loadFromId(livroSalvo.getId());
+            
+            tabela.getItems().add(modelToView(livroCompleto));
             tabela.getSelectionModel().selectLast();
         } catch (Exception e) {
             new Alert(Alert.AlertType.ERROR, "Erro ao Salvar: " + e.getMessage()).show();
         }
+        return true;
     }
     
     /**
      * Sobrescreve o método `doUpdate` para lidar com a relação N:M com Autores.
      */
     @Override
-    protected void doUpdate() {
+    protected boolean doUpdate() {
         view.Livro viewItem = tabela.getSelectionModel().getSelectedItem();
         try {
             Livro modelItem = getRepositorio().loadFromId(getIdFromViewModel(viewItem));
-            modelItem = viewToModel(modelItem); // Atualiza o objeto
-            getRepositorio().update(modelItem); // Salva as atualizações do livro
+            modelItem = viewToModel(modelItem);
+            getRepositorio().update(modelItem);
 
-            salvarAutoresAssociados(modelItem); // Re-salva as associações
+            salvarAutoresAssociados(modelItem);
+            
+            // Recarrega o livro do banco para garantir que as associações estejam atualizadas na view
+            Livro livroCompleto = getRepositorio().loadFromId(modelItem.getId());
             
             int index = tabela.getItems().indexOf(viewItem);
-            tabela.getItems().set(index, modelToView(modelItem)); // Atualiza a tabela
+            tabela.getItems().set(index, modelToView(livroCompleto));
         } catch (Exception e) {
             new Alert(Alert.AlertType.ERROR, "Erro ao Atualizar: " + e.getMessage()).show();
         }
+        return true;
     }
 
     /**
@@ -136,12 +150,12 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
      * @throws SQLException Se ocorrer um erro de SQL.
      */
     private void salvarAutoresAssociados(Livro livro) throws SQLException {
-        // 1. Remove todas as associações antigas deste livro
         List<LivroAutor> associacoesAntigas = Repositorios.LIVRO_AUTOR.getDao().queryBuilder()
             .where().eq("livro_id", livro.getId()).query();
-        Repositorios.LIVRO_AUTOR.getDao().delete(associacoesAntigas);
+        if (associacoesAntigas != null && !associacoesAntigas.isEmpty()){
+            Repositorios.LIVRO_AUTOR.getDao().delete(associacoesAntigas);
+        }
 
-        // 2. Cria as novas associações
         for (Autor autor : autoresAssociadosListView.getItems()) {
             LivroAutor novaAssociacao = new LivroAutor(livro, autor);
             Repositorios.LIVRO_AUTOR.create(novaAssociacao);
@@ -161,16 +175,26 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
         sinopseArea.setText(livroModel.getSinopse());
         categoriaComboBox.setValue(livroModel.getCategoria());
 
-        // Preenche as listas de autores
         List<Autor> todosAutores = Repositorios.AUTOR.loadAll();
         List<Autor> autoresAssociados = livroModel.getAutores().stream()
             .map(LivroAutor::getAutor).collect(Collectors.toList());
         
         autoresAssociadosListView.setItems(FXCollections.observableArrayList(autoresAssociados));
         
-        List<Autor> autoresDisponiveis = todosAutores.stream()
-            .filter(autor -> !autoresAssociados.contains(autor)).collect(Collectors.toList());
-        autoresDisponiveisListView.setItems(FXCollections.observableArrayList(autoresDisponiveis));
+        ObservableList<Autor> autoresDisponiveis = FXCollections.observableArrayList();
+        for(Autor autor : todosAutores){
+            boolean encontrado = false;
+            for(Autor associado : autoresAssociados){
+                if (autor.getId() == associado.getId()){
+                    encontrado = true;
+                    break;
+                }
+            }
+            if(!encontrado){
+                autoresDisponiveis.add(autor);
+            }
+        }
+        autoresDisponiveisListView.setItems(autoresDisponiveis);
     }
 
     @Override
@@ -228,6 +252,37 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
         if (selecionado != null) {
             autoresAssociadosListView.getItems().remove(selecionado);
             autoresDisponiveisListView.getItems().add(selecionado);
+        }
+    }
+
+    /**
+     * Sobrescreve o método refreshView para também atualizar os ComboBoxes e ListViews,
+     * preservando a seleção do usuário sempre que possível.
+     */
+    @Override
+    public void refreshView() {
+        super.refreshView(); // Atualiza a tabela principal
+
+        // --- Atualiza ComboBox de Categoria ---
+        if (categoriaComboBox != null) {
+            Categoria selecionada = categoriaComboBox.getSelectionModel().getSelectedItem();
+            ObservableList<Categoria> categorias = FXCollections.observableArrayList(Repositorios.CATEGORIA.loadAll());
+            categoriaComboBox.setItems(categorias);
+            // Tenta restaurar a seleção
+            if (selecionada != null) {
+                categoriaComboBox.getSelectionModel().select(selecionada);
+            }
+        }
+
+        // --- Atualiza ListView de Autores ---
+        if (autoresDisponiveisListView != null) {
+            List<Autor> todosAutores = Repositorios.AUTOR.loadAll();
+            List<Autor> autoresAssociados = new ArrayList<>(autoresAssociadosListView.getItems());
+            
+            List<Autor> autoresDisponiveis = todosAutores.stream()
+                .filter(autor -> !autoresAssociados.contains(autor))
+                .collect(Collectors.toList());
+            autoresDisponiveisListView.setItems(FXCollections.observableArrayList(autoresDisponiveis));
         }
     }
 }
