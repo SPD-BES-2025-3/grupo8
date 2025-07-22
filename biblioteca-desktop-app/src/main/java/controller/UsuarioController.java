@@ -11,8 +11,10 @@ import model.Repositorios;
 import model.Usuario;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
 
+import javafx.scene.control.Control;
 /**
  * Controlador para a tela de CRUD de Usuários.
  *
@@ -115,5 +117,10 @@ public class UsuarioController extends AbstractPessoaController<model.Usuario, v
     @Override
     protected Integer getIdFromViewModel(view.Usuario viewModel) {
         return viewModel.getId();
+    }
+
+    @Override
+    protected List<Control> getCamposObrigatorios() {
+        return List.of(nomeField, emailField, senhaField, cargoComboBox);
     }
 }

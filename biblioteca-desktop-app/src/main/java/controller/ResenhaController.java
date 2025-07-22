@@ -10,7 +10,9 @@ import model.*;
 import java.net.URL;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 import java.util.ResourceBundle;
+import javafx.scene.control.Control;
 
 /**
  * Controlador para a tela de CRUD de Resenhas.
@@ -142,5 +144,10 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
     @Override
     protected Integer getIdFromViewModel(view.Resenha viewModel) {
         return viewModel.getId();
+    }
+
+    @Override
+    protected List<Control> getCamposObrigatorios() {
+        return List.of(livroComboBox, usuarioComboBox, notaComboBox);
     }
 }

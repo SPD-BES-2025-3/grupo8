@@ -12,6 +12,8 @@ import model.Repositorios;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import javafx.scene.control.Control;
+import java.util.List;
 
 /**
  * Controlador para a tela de CRUD de Autores.
@@ -91,5 +93,10 @@ public class AutorController extends AbstractPessoaController<model.Autor, view.
     @Override
     protected Integer getIdFromViewModel(view.Autor viewModel) {
         return viewModel.getId();
+    }
+
+    @Override
+    protected List<Control> getCamposObrigatorios() {
+        return List.of(nomeField, nacionalidadeField);
     }
 }

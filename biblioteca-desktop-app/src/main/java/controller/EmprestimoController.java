@@ -11,6 +11,7 @@ import java.net.URL;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.ResourceBundle;
+import java.util.List;
 
 /**
  * Controlador para a tela de CRUD de Empréstimos.
@@ -167,5 +168,16 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
         } else {
             datePicker.setValue(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         }
+    }
+
+     @Override
+    protected List<Control> getCamposObrigatorios() {
+        return List.of(
+            livroComboBox,
+            usuarioComboBox,
+            dtEmprestimoPicker,
+            dtPrevistaPicker,
+            statusComboBox
+        );
     }
 }
