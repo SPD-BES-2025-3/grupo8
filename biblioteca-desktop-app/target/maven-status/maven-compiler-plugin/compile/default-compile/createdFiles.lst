@@ -4,6 +4,7 @@ model/Repositorio.class
 model/Usuario.class
 controller/CategoriaController.class
 model/Resenha.class
+controller/LoginController.class
 controller/AbstractPessoaController.class
 controller/AppController.class
 view/Usuario.class

@@ -7,9 +7,13 @@ import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.text.Text;
 import model.Repositorio;
+import model.Repositorios;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import model.Usuario;
 
 /**
  * Controlador abstrato que implementa a lógica CRUD (Create, Read, Update, Delete)
@@ -27,7 +31,7 @@ public abstract class AbstractCrudController<E, V, ID> {
      * Usada para notificar todas as telas sobre atualizações de dados.
      */
     private static final List<AbstractCrudController<?, ?, ?>> activeControllers = new ArrayList<>();
-
+    protected static Usuario usuarioLogado;
     /**
      * Enum para controlar a ação pendente do usuário (Criar, Atualizar, Deletar).
      */
@@ -44,19 +48,78 @@ public abstract class AbstractCrudController<E, V, ID> {
 
     // --- MÉTODOS ABSTRATOS (a serem implementados pelas classes filhas) ---
 
+    /**
+     * Retorna o repositório específico para a entidade.
+     *
+     * @return O repositório.
+     */
     protected abstract Repositorio<E, ID> getRepositorio();
+
+    /**
+     * Converte um objeto do modelo para um objeto do view model.
+     *
+     * @param entidade A entidade do modelo.
+     * @return O view model.
+     */
     protected abstract V modelToView(E entidade);
+
+    /**
+     * Converte um objeto do view model para um objeto do modelo.
+     *
+     * @param entidade A entidade do modelo.
+     * @return O modelo.
+     */
     protected abstract E viewToModel(E entidade);
+
+    /**
+     * Preenche os campos da tela com os dados de um item.
+     *
+     * @param item O item a ser exibido.
+     */
     protected abstract void preencherCampos(V item);
+
+    /**
+     * Limpa todos os campos da tela.
+     */
     protected abstract void limparCampos();
+
+    /**
+     * Habilita ou desabilita os campos da tela.
+     *
+     * @param desabilitado `true` para desabilitar, `false` para habilitar.
+     */
     protected abstract void desabilitarCampos(boolean desabilitado);
+
+    /**
+     * Retorna o ID de um view model.
+     *
+     * @param viewModel O view model.
+     * @return O ID.
+     */
     protected abstract ID getIdFromViewModel(V viewModel);
+
     /**
      * Retorna uma lista de controles (TextFields, ComboBoxes, etc.)
      * que são de preenchimento obrigatório para a validação.
      * @return Uma lista de controles a serem validados.
      */
     protected abstract List<Control> getCamposObrigatorios();
+
+    /**
+     * Método opcional para ser sobrescrito por controladores que possuem um ComboBox de usuário.
+     * @return O ComboBox de usuário da tela, ou null se não houver um.
+     */
+    protected ComboBox<Usuario> getUsuarioComboBox() {
+        return null;
+    }
+
+    /**
+     * Método opcional para ser sobrescrito por controladores que precisam de filtro por usuário.
+     * @return O nome da coluna de chave estrangeira do usuário (ex: "usuario_id").
+     */
+    protected String getUsuarioForeignKeyColumnName() {
+        return null;
+    }
 
     /**
      * Inicializa o controlador, adicionando-o à lista de controladores ativos,
@@ -68,10 +131,29 @@ public abstract class AbstractCrudController<E, V, ID> {
         }
         tabela.getSelectionModel().selectedItemProperty().addListener(
             (obs, oldSelection, newSelection) -> handleItemSelected(newSelection));
+
+        configurarInterfacePorUsuario();
         refreshView();
         resetToInitialState();
     }
-    
+
+     /**
+     * Configura componentes específicos da interface (como o ComboBox de usuário)
+     * com base no perfil do usuário logado.
+     */
+    private void configurarInterfacePorUsuario() {
+        ComboBox<Usuario> usuarioComboBox = getUsuarioComboBox();
+        if (usuarioComboBox != null && usuarioLogado != null) {
+            if ("Cliente".equals(usuarioLogado.getCargo().getName())) {
+                usuarioComboBox.setItems(FXCollections.observableArrayList(usuarioLogado));
+                usuarioComboBox.getSelectionModel().select(usuarioLogado);
+                usuarioComboBox.setDisable(true);
+            } else {
+                usuarioComboBox.setDisable(false);
+            }
+        }
+    }
+
     /**
      * Recarrega os dados da tabela a partir do banco de dados.
      * Este método pode ser sobrescrito para atualizar outros componentes, como ComboBoxes.
@@ -80,6 +162,16 @@ public abstract class AbstractCrudController<E, V, ID> {
         if (tabela != null) {
             tabela.setItems(loadAllItems());
             tabela.refresh();
+        }
+
+        // Atualiza a lista de usuários para Admin/Bibliotecário
+        ComboBox<Usuario> usuarioComboBox = getUsuarioComboBox();
+        if (usuarioComboBox != null && usuarioLogado != null && !"Cliente".equals(usuarioLogado.getCargo().getName())) {
+            Usuario selecionado = usuarioComboBox.getSelectionModel().getSelectedItem();
+            usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+            if (selecionado != null) {
+                usuarioComboBox.getSelectionModel().select(selecionado);
+            }
         }
     }
 
@@ -97,7 +189,7 @@ public abstract class AbstractCrudController<E, V, ID> {
             } else if (control instanceof ListView && ((ListView<?>) control).getItems().isEmpty()) {
                 campoInvalido = true;
             }
-            
+
             if (campoInvalido) {
                 Alert alert = new Alert(AlertType.ERROR);
                 alert.setTitle("Erro de Validação");
@@ -109,7 +201,7 @@ public abstract class AbstractCrudController<E, V, ID> {
         }
         return true;
     }
-    
+
     @FXML
     protected void onConfirmarButtonAction() {
         if (pendingAction == Action.NOVO || pendingAction == Action.ATUALIZAR) {
@@ -131,10 +223,10 @@ public abstract class AbstractCrudController<E, V, ID> {
                 controller.refreshView();
             }
         }
-        
+
         resetToInitialState();
     }
-    
+
     @FXML
     protected void onNovoButtonAction() {
         tabela.getSelectionModel().clearSelection();
@@ -155,12 +247,16 @@ public abstract class AbstractCrudController<E, V, ID> {
             setPendingAction(Action.DELETAR);
         }
     }
-    
+
     @FXML
     protected void onCancelarButtonAction() {
         resetToInitialState();
     }
 
+    /**
+     * Executa a ação de criar um novo registro.
+     * @return `true` se a operação for bem-sucedida, `false` caso contrário.
+     */
     protected boolean doCreate() {
         try {
             E novaEntidade = viewToModel(null);
@@ -172,6 +268,10 @@ public abstract class AbstractCrudController<E, V, ID> {
         }
     }
 
+    /**
+     * Executa a ação de atualizar um registro.
+     * @return `true` se a operação for bem-sucedida, `false` caso contrário.
+     */
     protected boolean doUpdate() {
         V viewItem = tabela.getSelectionModel().getSelectedItem();
         try {
@@ -185,6 +285,10 @@ public abstract class AbstractCrudController<E, V, ID> {
         }
     }
 
+    /**
+     * Executa a ação de deletar um registro.
+     * @return `true` se a operação for bem-sucedida, `false` caso contrário.
+     */
     protected boolean doDelete() {
         V viewItem = tabela.getSelectionModel().getSelectedItem();
         try {
@@ -201,16 +305,39 @@ public abstract class AbstractCrudController<E, V, ID> {
             return false;
         }
     }
-    
-    private ObservableList<V> loadAllItems() {
+
+    /**
+     * Carrega todos os itens, aplicando o filtro de "Cliente" quando aplicável.
+     * Esta lógica agora é centralizada e genérica.
+     * @return A lista de itens.
+     */
+    protected ObservableList<V> loadAllItems() {
         ObservableList<V> lista = FXCollections.observableArrayList();
-        List<E> listaDoBanco = getRepositorio().loadAll();
+        List<E> listaDoBanco;
+        String userColumn = getUsuarioForeignKeyColumnName();
+
+        try {
+            if (usuarioLogado != null && "Cliente".equals(usuarioLogado.getCargo().getName()) && userColumn != null) {
+                listaDoBanco = getRepositorio().getDao().queryBuilder()
+                    .where().eq(userColumn, usuarioLogado.getId()).query();
+            } else {
+                listaDoBanco = getRepositorio().loadAll();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            listaDoBanco = Collections.emptyList();
+        }
+
         for (E itemModel : listaDoBanco) {
             lista.add(modelToView(itemModel));
         }
         return lista;
     }
 
+    /**
+     * Define a ação pendente e atualiza a interface.
+     * @param action A ação a ser definida.
+     */
     private void setPendingAction(Action action) {
         pendingAction = action;
         boolean isConfirmationMode = (action != Action.NONE);
@@ -228,6 +355,9 @@ public abstract class AbstractCrudController<E, V, ID> {
         }
     }
 
+    /**
+     * Reseta o estado inicial da tela.
+     */
     private void resetToInitialState() {
         setPendingAction(Action.NONE);
         handleItemSelected(tabela.getSelectionModel().getSelectedItem());
@@ -236,7 +366,11 @@ public abstract class AbstractCrudController<E, V, ID> {
             desabilitarCampos(true);
         }
     }
-    
+
+    /**
+     * Lida com a seleção de um item na tabela.
+     * @param item O item selecionado.
+     */
     private void handleItemSelected(V item) {
         if (pendingAction != Action.NONE) return;
         if (item != null) {

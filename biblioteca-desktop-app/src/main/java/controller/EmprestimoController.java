@@ -64,8 +64,10 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
         if (livroComboBox != null) {
             livroComboBox.setItems(FXCollections.observableArrayList(Repositorios.LIVRO.loadAll()));
         }
-        if (usuarioComboBox != null) {
-            usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+        if (usuarioComboBox != null && usuarioLogado != null) {
+            if (!"Cliente".equals(usuarioLogado.getCargo().getName())) {
+                usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+            }
         }
     }
 
@@ -179,5 +181,21 @@ public class EmprestimoController extends AbstractCrudController<model.Emprestim
             dtPrevistaPicker,
             statusComboBox
         );
+    }
+
+    /**
+     * Informa à classe pai qual ComboBox deve ser gerenciado.
+     */
+    @Override
+    protected ComboBox<Usuario> getUsuarioComboBox() {
+        return usuarioComboBox;
+    }
+
+    /**
+     * Informa à classe pai o nome da coluna para usar no filtro de cliente.
+     */
+    @Override
+    protected String getUsuarioForeignKeyColumnName() {
+        return "usuario_id";
     }
 }

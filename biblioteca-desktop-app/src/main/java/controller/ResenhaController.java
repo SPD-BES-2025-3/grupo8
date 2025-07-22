@@ -12,7 +12,6 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
-import javafx.scene.control.Control;
 
 /**
  * Controlador para a tela de CRUD de Resenhas.
@@ -64,8 +63,10 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
         if (livroComboBox != null) {
             livroComboBox.setItems(FXCollections.observableArrayList(Repositorios.LIVRO.loadAll()));
         }
-        if (usuarioComboBox != null) {
-            usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+        if (usuarioComboBox != null && usuarioLogado != null) {
+            if (!"Cliente".equals(usuarioLogado.getCargo().getName())) {
+                usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+            }
         }
     }
 
@@ -149,5 +150,21 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
     @Override
     protected List<Control> getCamposObrigatorios() {
         return List.of(livroComboBox, usuarioComboBox, notaComboBox);
+    }
+
+    /**
+     * Informa à classe pai qual ComboBox deve ser gerenciado.
+     */
+    @Override
+    protected ComboBox<Usuario> getUsuarioComboBox() {
+        return usuarioComboBox;
+    }
+
+    /**
+     * Informa à classe pai o nome da coluna para usar no filtro de cliente.
+     */
+    @Override
+    protected String getUsuarioForeignKeyColumnName() {
+        return "usuario_id";
     }
 }

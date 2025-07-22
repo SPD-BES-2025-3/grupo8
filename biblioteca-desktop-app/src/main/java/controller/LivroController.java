@@ -8,6 +8,9 @@ import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
 import model.*;
+import model.LivroAutor;
+import model.Resenha;
+import model.Emprestimo;
 
 import java.net.URL;
 import java.sql.SQLException;
@@ -15,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
+
 /**
  * Controlador para a tela de CRUD de Livros.
  * @version 1.4
@@ -36,7 +40,6 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // ... (configuração das colunas)
         idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
         tituloCol.setCellValueFactory(new PropertyValueFactory<>("titulo"));
         autoresCol.setCellValueFactory(new PropertyValueFactory<>("autoresNomes"));
@@ -77,7 +80,6 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
             salvarAutoresAssociados(livroSalvo);
             return true;
         } catch (Exception e) {
-            // --- CORREÇÃO AQUI ---
             Alert alert = new Alert(AlertType.ERROR);
             alert.setTitle("Erro ao Salvar Livro");
             alert.setHeaderText("Não foi possível criar o livro.");
@@ -102,7 +104,6 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
             salvarAutoresAssociados(modelItem);
             return true;
         } catch (Exception e) {
-            // --- CORREÇÃO AQUI ---
             Alert alert = new Alert(AlertType.ERROR);
             alert.setTitle("Erro ao Atualizar Livro");
             alert.setHeaderText("Não foi possível atualizar o livro.");
@@ -124,15 +125,30 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
             Livro modelItem = getRepositorio().loadFromId(getIdFromViewModel(viewItem));
             if (modelItem == null) return false;
 
-            List<LivroAutor> associacoes = new ArrayList<>(modelItem.getAutores());
-            if (!associacoes.isEmpty()) {
-                Repositorios.LIVRO_AUTOR.getDao().delete(associacoes);
+            // 1. Deletar associações em LivroAutor
+            List<LivroAutor> associacoesAutores = new ArrayList<>(modelItem.getAutores());
+            if (!associacoesAutores.isEmpty()) {
+                Repositorios.LIVRO_AUTOR.getDao().delete(associacoesAutores);
             }
 
+            // 2. Deletar Resenhas associadas
+            List<Resenha> resenhas = Repositorios.RESENHA.getDao().queryBuilder()
+                .where().eq("livro_id", modelItem.getId()).query();
+            if (!resenhas.isEmpty()) {
+                Repositorios.RESENHA.getDao().delete(resenhas);
+            }
+
+            // 3. Deletar Empréstimos associados
+            List<Emprestimo> emprestimos = Repositorios.EMPRESTIMO.getDao().queryBuilder()
+                .where().eq("livro_id", modelItem.getId()).query();
+            if (!emprestimos.isEmpty()) {
+                Repositorios.EMPRESTIMO.getDao().delete(emprestimos);
+            }
+
+            // 4. Deletar o Livro
             getRepositorio().delete(modelItem);
             return true;
         } catch (Exception e) {
-            // --- CORREÇÃO AQUI ---
             Alert alert = new Alert(AlertType.ERROR);
             alert.setTitle("Erro ao Deletar o Livro");
             alert.setHeaderText("Não foi possível excluir o livro.");

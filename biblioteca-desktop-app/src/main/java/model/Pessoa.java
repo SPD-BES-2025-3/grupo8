@@ -21,26 +21,50 @@ public abstract class Pessoa {
     protected Date dtNascimento;
 
     // Getters e Setters
+    /**
+     * Retorna o ID da pessoa.
+     * @return O ID.
+     */
     public int getId() {
         return id;
     }
 
+    /**
+     * Define o ID da pessoa.
+     * @param id O ID.
+     */
     public void setId(int id) {
         this.id = id;
     }
 
+    /**
+     * Retorna o nome da pessoa.
+     * @return O nome.
+     */
     public String getNome() {
         return nome;
     }
 
+    /**
+     * Define o nome da pessoa.
+     * @param nome O nome.
+     */
     public void setNome(String nome) {
         this.nome = nome;
     }
 
+    /**
+     * Retorna a data de nascimento da pessoa.
+     * @return A data de nascimento.
+     */
     public Date getDtNascimento() {
         return dtNascimento;
     }
 
+    /**
+     * Define a data de nascimento da pessoa.
+     * @param dtNascimento A data de nascimento.
+     */
     public void setDtNascimento(Date dtNascimento) {
         this.dtNascimento = dtNascimento;
     }

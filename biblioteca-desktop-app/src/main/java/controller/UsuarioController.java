@@ -6,15 +6,15 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import model.Cargos;
+import model.Emprestimo;
 import model.Repositorio;
 import model.Repositorios;
+import model.Resenha;
 import model.Usuario;
 
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
-
-import javafx.scene.control.Control;
 /**
  * Controlador para a tela de CRUD de Usuários.
  *
@@ -89,7 +89,7 @@ public class UsuarioController extends AbstractPessoaController<model.Usuario, v
 
         emailField.setText(usuarioModel.getEmail());
         telefoneField.setText(usuarioModel.getTelefone());
-        senhaField.clear();
+        senhaField.setText(usuarioModel.getSenha());
         isAtivoCheck.setSelected(usuarioModel.isAtivo());
         cargoComboBox.setValue(usuarioModel.getCargo());
     }
@@ -121,6 +121,46 @@ public class UsuarioController extends AbstractPessoaController<model.Usuario, v
 
     @Override
     protected List<Control> getCamposObrigatorios() {
-        return List.of(nomeField, emailField, senhaField, cargoComboBox);
+        return List.of(nomeField, emailField, senhaField);
+    }
+
+    /**
+     * Deleta um usuário, removendo primeiro as associações com resenhas e empréstimos.
+     * @return `true` se a operação for bem-sucedida, `false` caso contrário.
+     */
+    @Override
+    protected boolean doDelete() {
+        view.Usuario viewItem = tabela.getSelectionModel().getSelectedItem();
+        if (viewItem == null) return false;
+
+        try {
+            Usuario modelItem = getRepositorio().loadFromId(getIdFromViewModel(viewItem));
+            if (modelItem == null) return false;
+
+            // 1. Deletar Resenhas associadas
+            List<Resenha> resenhas = Repositorios.RESENHA.getDao().queryBuilder()
+                .where().eq("usuario_id", modelItem.getId()).query();
+            if (!resenhas.isEmpty()) {
+                Repositorios.RESENHA.getDao().delete(resenhas);
+            }
+
+            // 2. Deletar Empréstimos associados
+            List<Emprestimo> emprestimos = Repositorios.EMPRESTIMO.getDao().queryBuilder()
+                .where().eq("usuario_id", modelItem.getId()).query();
+            if (!emprestimos.isEmpty()) {
+                Repositorios.EMPRESTIMO.getDao().delete(emprestimos);
+            }
+
+            // 3. Deletar o Usuário
+            getRepositorio().delete(modelItem);
+            return true;
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Erro ao Deletar o Usuário");
+            alert.setHeaderText("Não foi possível excluir o usuário.");
+            alert.setContentText("Causa: " + e.getMessage());
+            alert.showAndWait();
+            return false;
+        }
     }
 }

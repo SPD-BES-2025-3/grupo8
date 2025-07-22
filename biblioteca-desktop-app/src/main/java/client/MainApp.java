@@ -9,22 +9,21 @@ import javafx.stage.Stage;
 import model.Cargos;
 import model.Repositorios;
 import model.Usuario;
+import controller.LoginController;
 
-import java.net.URL;
 import java.sql.SQLException;
 import java.util.List;
 
 /**
  * Classe principal da aplicação que inicializa o JavaFX,
- * configura os dados iniciais do banco de dados e carrega a interface gráfica.
+ * configura os dados iniciais e carrega a tela de login.
  *
- * @version 1.0
+ * @version 1.1
  */
 public class MainApp extends Application {
 
     /**
      * Ponto de entrada da aplicação JavaFX.
-     *
      * @param primaryStage O palco principal da aplicação.
      */
     @Override
@@ -33,18 +32,20 @@ public class MainApp extends Application {
             // --- LÓGICA DE INICIALIZAÇÃO DE DADOS ---
             setupInitialData();
 
-            // --- CARREGAMENTO DA INTERFACE GRÁFICA ---
-            URL fxmlLocation = getClass().getResource("/view/app.fxml");
-            if (fxmlLocation == null) {
-                throw new IllegalStateException("Não foi possível encontrar o arquivo FXML principal: /view/app.fxml.");
-            }
-            
-            VBox root = FXMLLoader.load(fxmlLocation);
-            Scene scene = new Scene(root);
+            // --- CARREGAMENTO DA TELA DE LOGIN ---
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
+            VBox root = loader.load();
 
-            primaryStage.setTitle("Sistema de Gestão de Biblioteca");
+            // Passa o 'stage' para o LoginController para que ele possa abrir a próxima tela
+            LoginController loginController = loader.getController();
+            loginController.setStage(primaryStage);
+
+            Scene scene = new Scene(root);
+            primaryStage.setTitle("Login - Sistema de Biblioteca");
             primaryStage.setScene(scene);
+            primaryStage.setResizable(false); // Impede que a tela de login seja redimensionada
             primaryStage.show();
+
         } catch (Exception e) {
             e.printStackTrace();
             Alert alert = new Alert(Alert.AlertType.ERROR);
