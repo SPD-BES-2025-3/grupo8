@@ -22,16 +22,45 @@ public class LivroAutor {
 
     public LivroAutor() {}
 
+    /**
+     * Construtor da classe LivroAutor.
+     * @param livro O livro a ser associado.
+     * @param autor O autor a ser associado.
+     */
     public LivroAutor(Livro livro, Autor autor) {
         this.livro = livro;
         this.autor = autor;
     }
     
     // Getters e Setters
+    /**
+     * Retorna o ID da associação.
+     * @return O ID.
+     */
     public int getId() { return id; }
+    /**
+     * Define o ID da associação.
+     * @param id O ID.
+     */
     public void setId(int id) { this.id = id; }
+    /**
+     * Retorna o livro associado.
+     * @return O livro.
+     */
     public Livro getLivro() { return livro; }
+    /**
+     * Define o livro associado.
+     * @param livro O livro.
+     */
     public void setLivro(Livro livro) { this.livro = livro; }
+    /**
+     * Retorna o autor associado.
+     * @return O autor.
+     */
     public Autor getAutor() { return autor; }
+    /**
+     * Define o autor associado.
+     * @param autor O autor.
+     */
     public void setAutor(Autor autor) { this.autor = autor; }
 }

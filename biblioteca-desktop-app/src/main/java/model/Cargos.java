@@ -17,9 +17,25 @@ public class Cargos {
     private String name;
 
     // Getters e Setters
+    /**
+     * Retorna o ID do cargo.
+     * @return O ID.
+     */
     public int getId() { return id; }
+    /**
+     * Define o ID do cargo.
+     * @param id O ID.
+     */
     public void setId(int id) { this.id = id; }
+    /**
+     * Retorna o nome do cargo.
+     * @return O nome.
+     */
     public String getName() { return name; }
+    /**
+     * Define o nome do cargo.
+     * @param name O nome.
+     */
     public void setName(String name) { this.name = name; }
 
     @Override

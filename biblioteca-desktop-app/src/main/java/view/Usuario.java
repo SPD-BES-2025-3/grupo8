@@ -17,6 +17,15 @@ public class Usuario {
     private final SimpleBooleanProperty isAtivo;
     private final SimpleStringProperty cargoNome;
 
+    /**
+     * Construtor da classe Usuario.
+     * @param id O ID do usuário.
+     * @param nome O nome do usuário.
+     * @param email O email do usuário.
+     * @param telefone O telefone do usuário.
+     * @param isAtivo Se o usuário está ativo.
+     * @param cargoNome O nome do cargo do usuário.
+     */
     public Usuario(int id, String nome, String email, String telefone, boolean isAtivo, String cargoNome) {
         this.id = new SimpleIntegerProperty(id);
         this.nome = new SimpleStringProperty(nome);
@@ -27,10 +36,34 @@ public class Usuario {
     }
 
     // Getters para as propriedades do JavaFX
+    /**
+     * Retorna o ID do usuário.
+     * @return O ID.
+     */
     public int getId() { return id.get(); }
+    /**
+     * Retorna o nome do usuário.
+     * @return O nome.
+     */
     public String getNome() { return nome.get(); }
+    /**
+     * Retorna o email do usuário.
+     * @return O email.
+     */
     public String getEmail() { return email.get(); }
+    /**
+     * Retorna o telefone do usuário.
+     * @return O telefone.
+     */
     public String getTelefone() { return telefone.get(); }
+    /**
+     * Retorna se o usuário está ativo.
+     * @return `true` se o usuário está ativo, `false` caso contrário.
+     */
     public boolean isIsAtivo() { return isAtivo.get(); }
+    /**
+     * Retorna o nome do cargo do usuário.
+     * @return O nome do cargo.
+     */
     public String getCargoNome() { return cargoNome.get(); }
 }

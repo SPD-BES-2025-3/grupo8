@@ -26,7 +26,7 @@
     </MenuBar>
     <AnchorPane VBox.vgrow="ALWAYS">
       <children>
-        <TabPane tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
           <tabs>
             <Tab fx:id="tabUsuarios" text="Usuários" />
             <Tab fx:id="tabAutores" text="Autores" />

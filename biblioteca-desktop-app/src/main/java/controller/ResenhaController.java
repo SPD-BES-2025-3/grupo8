@@ -10,12 +10,13 @@ import model.*;
 import java.net.URL;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 import java.util.ResourceBundle;
 
 /**
  * Controlador para a tela de CRUD de Resenhas.
  *
- * @version 1.0
+ * @version 1.1
  */
 public class ResenhaController extends AbstractCrudController<model.Resenha, view.Resenha, Integer> implements Initializable {
 
@@ -30,29 +31,43 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
     @FXML private ComboBox<Livro> livroComboBox;
     @FXML private ComboBox<Usuario> usuarioComboBox;
     @FXML private DatePicker dtAvaliacaoPicker;
-    @FXML private TextField notaField;
+    @FXML private ComboBox<Integer> notaComboBox;
     @FXML private TextArea textoArea;
 
     /**
      * Inicializa o controlador, mapeando colunas e populando ComboBoxes.
      *
-     * @param location  A localização usada para resolver caminhos relativos para o objeto raiz, ou null se a localização não for conhecida.
-     * @param resources Os recursos usados para localizar o objeto raiz, ou null se o objeto raiz não foi localizado.
+     * @param location  A localização usada para resolver caminhos relativos para o objeto raiz.
+     * @param resources Os recursos usados para localizar o objeto raiz.
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Mapeia colunas da tabela
         idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
         livroCol.setCellValueFactory(new PropertyValueFactory<>("livroTitulo"));
         usuarioCol.setCellValueFactory(new PropertyValueFactory<>("usuarioNome"));
         notaCol.setCellValueFactory(new PropertyValueFactory<>("nota"));
         textoCol.setCellValueFactory(new PropertyValueFactory<>("texto"));
 
-        // Popula os ComboBoxes
-        livroComboBox.setItems(FXCollections.observableArrayList(Repositorios.LIVRO.loadAll()));
-        usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+        // Popula o ComboBox de nota com valores de 1 a 5
+        notaComboBox.setItems(FXCollections.observableArrayList(1, 2, 3, 4, 5));
 
         super.initialize();
+    }
+    
+    /**
+     * Sobrescreve o método refreshView para também atualizar os ComboBoxes de Livros e Usuários.
+     */
+    @Override
+    public void refreshView() {
+        super.refreshView(); // Atualiza a tabela principal
+        if (livroComboBox != null) {
+            livroComboBox.setItems(FXCollections.observableArrayList(Repositorios.LIVRO.loadAll()));
+        }
+        if (usuarioComboBox != null && usuarioLogado != null) {
+            if (!"Cliente".equals(usuarioLogado.getCargo().getName())) {
+                usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+            }
+        }
     }
 
     @Override
@@ -64,7 +79,9 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
     protected view.Resenha modelToView(Resenha model) {
         String livroTitulo = (model.getLivro() != null) ? model.getLivro().getTitulo() : "N/D";
         String usuarioNome = (model.getUsuario() != null) ? model.getUsuario().getNome() : "N/D";
-        String textoPreview = (model.getTexto() != null && model.getTexto().length() > 50) ? model.getTexto().substring(0, 50) + "..." : model.getTexto();
+        String textoPreview = (model.getTexto() != null && model.getTexto().length() > 50) 
+                              ? model.getTexto().substring(0, 50) + "..." 
+                              : model.getTexto();
         
         return new view.Resenha(model.getId(), livroTitulo, usuarioNome, model.getNota(), textoPreview);
     }
@@ -78,11 +95,8 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
         resenha.setUsuario(usuarioComboBox.getSelectionModel().getSelectedItem());
         resenha.setTexto(textoArea.getText());
         
-        try {
-            resenha.setNota(Integer.parseInt(notaField.getText()));
-        } catch (NumberFormatException e) {
-            resenha.setNota(0); // Valor padrão
-        }
+        Integer notaSelecionada = notaComboBox.getSelectionModel().getSelectedItem();
+        resenha.setNota(notaSelecionada != null ? notaSelecionada : 0); // Valor padrão
 
         if (dtAvaliacaoPicker.getValue() != null) {
             resenha.setDtAvaliacao(Date.from(dtAvaliacaoPicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
@@ -99,7 +113,7 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
         idField.setText(String.valueOf(resenhaModel.getId()));
         livroComboBox.setValue(resenhaModel.getLivro());
         usuarioComboBox.setValue(resenhaModel.getUsuario());
-        notaField.setText(String.valueOf(resenhaModel.getNota()));
+        notaComboBox.setValue(resenhaModel.getNota());
         textoArea.setText(resenhaModel.getTexto());
 
         if (resenhaModel.getDtAvaliacao() != null) {
@@ -115,7 +129,7 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
         livroComboBox.getSelectionModel().clearSelection();
         usuarioComboBox.getSelectionModel().clearSelection();
         dtAvaliacaoPicker.setValue(null);
-        notaField.clear();
+        notaComboBox.getSelectionModel().clearSelection();
         textoArea.clear();
     }
 
@@ -124,12 +138,33 @@ public class ResenhaController extends AbstractCrudController<model.Resenha, vie
         livroComboBox.setDisable(desabilitado);
         usuarioComboBox.setDisable(desabilitado);
         dtAvaliacaoPicker.setDisable(desabilitado);
-        notaField.setDisable(desabilitado);
+        notaComboBox.setDisable(desabilitado);
         textoArea.setDisable(desabilitado);
     }
 
     @Override
     protected Integer getIdFromViewModel(view.Resenha viewModel) {
         return viewModel.getId();
+    }
+
+    @Override
+    protected List<Control> getCamposObrigatorios() {
+        return List.of(livroComboBox, usuarioComboBox, notaComboBox);
+    }
+
+    /**
+     * Informa à classe pai qual ComboBox deve ser gerenciado.
+     */
+    @Override
+    protected ComboBox<Usuario> getUsuarioComboBox() {
+        return usuarioComboBox;
+    }
+
+    /**
+     * Informa à classe pai o nome da coluna para usar no filtro de cliente.
+     */
+    @Override
+    protected String getUsuarioForeignKeyColumnName() {
+        return "usuario_id";
     }
 }

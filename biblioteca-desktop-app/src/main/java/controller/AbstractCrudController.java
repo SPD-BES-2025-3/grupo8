@@ -3,26 +3,38 @@ package controller;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
+import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.TableView;
 import javafx.scene.text.Text;
 import model.Repositorio;
+import model.Repositorios;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import model.Usuario;
 
 /**
  * Controlador abstrato que implementa a lógica CRUD (Create, Read, Update, Delete)
- * para uma entidade genérica.
+ * com validação genérica de campos e atualização automática entre telas.
  *
- * @param <E>  O tipo da entidade do modelo.
- * @param <V>  O tipo do ViewModel para a tabela.
- * @param <ID> O tipo do ID da entidade.
- * @version 1.0
+ * @param <E>  O tipo da entidade do modelo (ex: Livro, Autor).
+ * @param <V>  O tipo do ViewModel para a tabela (ex: view.Livro, view.Autor).
+ * @param <ID> O tipo do ID da entidade (ex: Integer).
+ * @version 1.5
  */
 public abstract class AbstractCrudController<E, V, ID> {
 
+    /**
+     * Lista estática que rastreia todas as instâncias ativas de controladores CRUD.
+     * Usada para notificar todas as telas sobre atualizações de dados.
+     */
+    private static final List<AbstractCrudController<?, ?, ?>> activeControllers = new ArrayList<>();
+    protected static Usuario usuarioLogado;
+    /**
+     * Enum para controlar a ação pendente do usuário (Criar, Atualizar, Deletar).
+     */
     private enum Action { NONE, NOVO, ATUALIZAR, DELETAR }
     private Action pendingAction = Action.NONE;
 
@@ -34,28 +46,187 @@ public abstract class AbstractCrudController<E, V, ID> {
     @FXML protected Button cancelarButton;
     @FXML protected Text confirmacaoText;
 
+    // --- MÉTODOS ABSTRATOS (a serem implementados pelas classes filhas) ---
+
+    /**
+     * Retorna o repositório específico para a entidade.
+     *
+     * @return O repositório.
+     */
     protected abstract Repositorio<E, ID> getRepositorio();
+
+    /**
+     * Converte um objeto do modelo para um objeto do view model.
+     *
+     * @param entidade A entidade do modelo.
+     * @return O view model.
+     */
     protected abstract V modelToView(E entidade);
+
+    /**
+     * Converte um objeto do view model para um objeto do modelo.
+     *
+     * @param entidade A entidade do modelo.
+     * @return O modelo.
+     */
     protected abstract E viewToModel(E entidade);
+
+    /**
+     * Preenche os campos da tela com os dados de um item.
+     *
+     * @param item O item a ser exibido.
+     */
     protected abstract void preencherCampos(V item);
+
+    /**
+     * Limpa todos os campos da tela.
+     */
     protected abstract void limparCampos();
+
+    /**
+     * Habilita ou desabilita os campos da tela.
+     *
+     * @param desabilitado `true` para desabilitar, `false` para habilitar.
+     */
     protected abstract void desabilitarCampos(boolean desabilitado);
+
+    /**
+     * Retorna o ID de um view model.
+     *
+     * @param viewModel O view model.
+     * @return O ID.
+     */
     protected abstract ID getIdFromViewModel(V viewModel);
 
     /**
-     * Inicializa o controlador, configurando listeners e o estado inicial da interface.
+     * Retorna uma lista de controles (TextFields, ComboBoxes, etc.)
+     * que são de preenchimento obrigatório para a validação.
+     * @return Uma lista de controles a serem validados.
      */
-    public void initialize() {
-        tabela.getSelectionModel().selectedItemProperty().addListener(
-            (obs, oldSelection, newSelection) -> handleItemSelected(newSelection));
+    protected abstract List<Control> getCamposObrigatorios();
 
-        tabela.setItems(loadAllItems());
-        resetToInitialState();
+    /**
+     * Método opcional para ser sobrescrito por controladores que possuem um ComboBox de usuário.
+     * @return O ComboBox de usuário da tela, ou null se não houver um.
+     */
+    protected ComboBox<Usuario> getUsuarioComboBox() {
+        return null;
     }
 
     /**
-     * Ação do botão "Novo". Prepara a interface para a criação de um novo item.
+     * Método opcional para ser sobrescrito por controladores que precisam de filtro por usuário.
+     * @return O nome da coluna de chave estrangeira do usuário (ex: "usuario_id").
      */
+    protected String getUsuarioForeignKeyColumnName() {
+        return null;
+    }
+
+    /**
+     * Inicializa o controlador, adicionando-o à lista de controladores ativos,
+     * configurando listeners e carregando os dados iniciais.
+     */
+    public void initialize() {
+        if (!activeControllers.contains(this)) {
+            activeControllers.add(this);
+        }
+        tabela.getSelectionModel().selectedItemProperty().addListener(
+            (obs, oldSelection, newSelection) -> handleItemSelected(newSelection));
+
+        configurarInterfacePorUsuario();
+        refreshView();
+        resetToInitialState();
+    }
+
+     /**
+     * Configura componentes específicos da interface (como o ComboBox de usuário)
+     * com base no perfil do usuário logado.
+     */
+    private void configurarInterfacePorUsuario() {
+        ComboBox<Usuario> usuarioComboBox = getUsuarioComboBox();
+        if (usuarioComboBox != null && usuarioLogado != null) {
+            if ("Cliente".equals(usuarioLogado.getCargo().getName())) {
+                usuarioComboBox.setItems(FXCollections.observableArrayList(usuarioLogado));
+                usuarioComboBox.getSelectionModel().select(usuarioLogado);
+                usuarioComboBox.setDisable(true);
+            } else {
+                usuarioComboBox.setDisable(false);
+            }
+        }
+    }
+
+    /**
+     * Recarrega os dados da tabela a partir do banco de dados.
+     * Este método pode ser sobrescrito para atualizar outros componentes, como ComboBoxes.
+     */
+    public void refreshView() {
+        if (tabela != null) {
+            tabela.setItems(loadAllItems());
+            tabela.refresh();
+        }
+
+        // Atualiza a lista de usuários para Admin/Bibliotecário
+        ComboBox<Usuario> usuarioComboBox = getUsuarioComboBox();
+        if (usuarioComboBox != null && usuarioLogado != null && !"Cliente".equals(usuarioLogado.getCargo().getName())) {
+            Usuario selecionado = usuarioComboBox.getSelectionModel().getSelectedItem();
+            usuarioComboBox.setItems(FXCollections.observableArrayList(Repositorios.USUARIO.loadAll()));
+            if (selecionado != null) {
+                usuarioComboBox.getSelectionModel().select(selecionado);
+            }
+        }
+    }
+
+    /**
+     * Valida uma lista de controles para garantir que não estão vazios.
+     * @return {@code true} se todos os campos forem válidos, {@code false} caso contrário.
+     */
+    private boolean validarCampos() {
+        for (Control control : getCamposObrigatorios()) {
+            boolean campoInvalido = false;
+            if (control instanceof TextInputControl && ((TextInputControl) control).getText().trim().isEmpty()) {
+                campoInvalido = true;
+            } else if (control instanceof ComboBox && ((ComboBox<?>) control).getSelectionModel().isEmpty()) {
+                campoInvalido = true;
+            } else if (control instanceof ListView && ((ListView<?>) control).getItems().isEmpty()) {
+                campoInvalido = true;
+            }
+
+            if (campoInvalido) {
+                Alert alert = new Alert(AlertType.ERROR);
+                alert.setTitle("Erro de Validação");
+                alert.setHeaderText("Campos Obrigatórios Vazios");
+                alert.setContentText("Por favor, preencha todos os campos necessários antes de confirmar.");
+                alert.showAndWait();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @FXML
+    protected void onConfirmarButtonAction() {
+        if (pendingAction == Action.NOVO || pendingAction == Action.ATUALIZAR) {
+            if (!validarCampos()) {
+                return; // Aborta a operação se a validação falhar
+            }
+        }
+
+        boolean success = false;
+        switch (pendingAction) {
+            case NOVO:      success = doCreate(); break;
+            case ATUALIZAR: success = doUpdate(); break;
+            case DELETAR:   success = doDelete(); break;
+            default: break;
+        }
+
+        if (success) {
+            for (AbstractCrudController<?, ?, ?> controller : activeControllers) {
+                controller.refreshView();
+            }
+        }
+
+        resetToInitialState();
+    }
+
     @FXML
     protected void onNovoButtonAction() {
         tabela.getSelectionModel().clearSelection();
@@ -63,9 +234,6 @@ public abstract class AbstractCrudController<E, V, ID> {
         setPendingAction(Action.NOVO);
     }
 
-    /**
-     * Ação do botão "Atualizar". Prepara a interface para a atualização do item selecionado.
-     */
     @FXML
     protected void onAtualizarButtonAction() {
         if (tabela.getSelectionModel().getSelectedItem() != null) {
@@ -73,9 +241,6 @@ public abstract class AbstractCrudController<E, V, ID> {
         }
     }
 
-    /**
-     * Ação do botão "Deletar". Prepara a interface para a exclusão do item selecionado.
-     */
     @FXML
     protected void onDeletarButtonAction() {
         if (tabela.getSelectionModel().getSelectedItem() != null) {
@@ -83,86 +248,105 @@ public abstract class AbstractCrudController<E, V, ID> {
         }
     }
 
-    /**
-     * Ação do botão "Confirmar". Executa a ação pendente (Criar, Atualizar ou Deletar).
-     */
-    @FXML
-    protected void onConfirmarButtonAction() {
-        switch (pendingAction) {
-            case NOVO:      doCreate(); break;
-            case ATUALIZAR: doUpdate(); break;
-            case DELETAR:   doDelete(); break;
-            default: break;
-        }
-        resetToInitialState();
-    }
-
-    /**
-     * Ação do botão "Cancelar". Cancela a ação pendente e retorna ao estado inicial.
-     */
     @FXML
     protected void onCancelarButtonAction() {
         resetToInitialState();
     }
 
     /**
-     * Executa a operação de criação (Create).
+     * Executa a ação de criar um novo registro.
+     * @return `true` se a operação for bem-sucedida, `false` caso contrário.
      */
-    protected void doCreate() {
+    protected boolean doCreate() {
         try {
             E novaEntidade = viewToModel(null);
             E entidadeSalva = getRepositorio().create(novaEntidade);
-            tabela.getItems().add(modelToView(entidadeSalva));
-            tabela.getSelectionModel().selectLast();
+            return entidadeSalva != null;
         } catch (Exception e) {
-            new Alert(AlertType.ERROR, "Erro ao Salvar: " + e.getMessage()).show();
+            new Alert(AlertType.ERROR, "Erro ao Salvar: " + e.getMessage()).showAndWait();
+            return false;
         }
     }
 
     /**
-     * Executa a operação de atualização (Update).
+     * Executa a ação de atualizar um registro.
+     * @return `true` se a operação for bem-sucedida, `false` caso contrário.
      */
-    protected void doUpdate() {
+    protected boolean doUpdate() {
         V viewItem = tabela.getSelectionModel().getSelectedItem();
         try {
             E modelItem = getRepositorio().loadFromId(getIdFromViewModel(viewItem));
             modelItem = viewToModel(modelItem);
             getRepositorio().update(modelItem);
-
-            int index = tabela.getItems().indexOf(viewItem);
-            tabela.getItems().set(index, modelToView(modelItem));
+            return true;
         } catch (Exception e) {
-            new Alert(AlertType.ERROR, "Erro ao Atualizar: " + e.getMessage()).show();
+            new Alert(AlertType.ERROR, "Erro ao Atualizar: " + e.getMessage()).showAndWait();
+            return false;
         }
     }
 
     /**
-     * Executa a operação de exclusão (Delete).
+     * Executa a ação de deletar um registro.
+     * @return `true` se a operação for bem-sucedida, `false` caso contrário.
      */
-    protected void doDelete() {
+    protected boolean doDelete() {
         V viewItem = tabela.getSelectionModel().getSelectedItem();
-        E modelItem = getRepositorio().loadFromId(getIdFromViewModel(viewItem));
-        getRepositorio().delete(modelItem);
-        tabela.getItems().remove(viewItem);
+        try {
+            E modelItem = getRepositorio().loadFromId(getIdFromViewModel(viewItem));
+            if (modelItem == null) return false;
+            getRepositorio().delete(modelItem);
+            return true;
+        } catch (Exception e) {
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Erro ao Deletar");
+            alert.setHeaderText("Não foi possível excluir o item.");
+            alert.setContentText("Verifique se ele não está sendo usado em outro cadastro (ex: um autor associado a um livro).");
+            alert.showAndWait();
+            return false;
+        }
     }
 
     /**
-     * Define a ação pendente e ajusta o estado dos botões e campos.
+     * Carrega todos os itens, aplicando o filtro de "Cliente" quando aplicável.
+     * Esta lógica agora é centralizada e genérica.
+     * @return A lista de itens.
+     */
+    protected ObservableList<V> loadAllItems() {
+        ObservableList<V> lista = FXCollections.observableArrayList();
+        List<E> listaDoBanco;
+        String userColumn = getUsuarioForeignKeyColumnName();
+
+        try {
+            if (usuarioLogado != null && "Cliente".equals(usuarioLogado.getCargo().getName()) && userColumn != null) {
+                listaDoBanco = getRepositorio().getDao().queryBuilder()
+                    .where().eq(userColumn, usuarioLogado.getId()).query();
+            } else {
+                listaDoBanco = getRepositorio().loadAll();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            listaDoBanco = Collections.emptyList();
+        }
+
+        for (E itemModel : listaDoBanco) {
+            lista.add(modelToView(itemModel));
+        }
+        return lista;
+    }
+
+    /**
+     * Define a ação pendente e atualiza a interface.
      * @param action A ação a ser definida.
      */
     private void setPendingAction(Action action) {
         pendingAction = action;
         boolean isConfirmationMode = (action != Action.NONE);
-
         novoButton.setDisable(isConfirmationMode);
         atualizarButton.setDisable(isConfirmationMode || tabela.getSelectionModel().getSelectedItem() == null);
         deletarButton.setDisable(isConfirmationMode || tabela.getSelectionModel().getSelectedItem() == null);
-
         confirmarButton.setDisable(!isConfirmationMode);
         cancelarButton.setDisable(!isConfirmationMode);
-
         desabilitarCampos(action != Action.NOVO && action != Action.ATUALIZAR);
-
         switch(action) {
             case NOVO:      confirmacaoText.setText("Ação Pendente: Criar novo item"); break;
             case ATUALIZAR: confirmacaoText.setText("Ação Pendente: Atualizar item"); break;
@@ -172,18 +356,15 @@ public abstract class AbstractCrudController<E, V, ID> {
     }
 
     /**
-     * Reseta a interface para o estado inicial.
+     * Reseta o estado inicial da tela.
      */
     private void resetToInitialState() {
         setPendingAction(Action.NONE);
+        handleItemSelected(tabela.getSelectionModel().getSelectedItem());
         if (tabela.getSelectionModel().getSelectedItem() == null) {
             limparCampos();
-            atualizarButton.setDisable(true);
-            deletarButton.setDisable(true);
-        } else {
-            handleItemSelected(tabela.getSelectionModel().getSelectedItem());
+            desabilitarCampos(true);
         }
-        desabilitarCampos(true);
     }
 
     /**
@@ -192,29 +373,15 @@ public abstract class AbstractCrudController<E, V, ID> {
      */
     private void handleItemSelected(V item) {
         if (pendingAction != Action.NONE) return;
-
         if (item != null) {
             preencherCampos(item);
             atualizarButton.setDisable(false);
             deletarButton.setDisable(false);
+            desabilitarCampos(true);
         } else {
             limparCampos();
             atualizarButton.setDisable(true);
             deletarButton.setDisable(true);
         }
-        desabilitarCampos(true);
-    }
-
-    /**
-     * Carrega todos os itens do repositório e os converte para a lista de ViewModels.
-     * @return Uma lista observável de ViewModels.
-     */
-    private ObservableList<V> loadAllItems() {
-        ObservableList<V> lista = FXCollections.observableArrayList();
-        List<E> listaDoBanco = getRepositorio().loadAll();
-        for (E itemModel : listaDoBanco) {
-            lista.add(modelToView(itemModel));
-        }
-        return lista;
     }
 }

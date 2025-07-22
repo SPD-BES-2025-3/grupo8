@@ -10,7 +10,9 @@ import model.Repositorio;
 import model.Repositorios;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
+import javafx.scene.control.Control;
 
 /**
  * Controlador para a tela de CRUD de Categorias.
@@ -88,5 +90,10 @@ public class CategoriaController extends AbstractCrudController<model.Categoria,
     @Override
     protected Integer getIdFromViewModel(view.Categoria viewModel) {
         return viewModel.getId();
+    }
+
+    @Override
+    protected List<Control> getCamposObrigatorios() {
+        return List.of(nomeField);
     }
 }
