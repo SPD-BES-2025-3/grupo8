@@ -125,4 +125,9 @@ public class AppController {
         Parent content = FXMLLoader.load(resource);
         tab.setContent(content);
     }
+
+    @FXML
+    private void handleRefresh() {
+        AbstractCrudController.refreshAllViews();
+    }
 }
