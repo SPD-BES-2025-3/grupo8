@@ -1,5 +1,6 @@
 package com.livraria.api.controller;
 
+import com.livraria.api.service.JmsProducerService;
 import com.livraria.api.model.Livro;
 import com.livraria.api.model.Resenha;
 import com.livraria.api.repository.LivroRepository;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Controlador REST responsável por gerenciar os endpoints da API para a entidade {@link Livro}.
@@ -25,6 +25,9 @@ public class LivroController {
     @Autowired
     private LivroRepository livroRepository;
 
+    @Autowired
+    private JmsProducerService jmsProducer;
+
     /**
      * Cria um novo livro no banco de dados.
      * @param livro O objeto Livro a ser criado, vindo do corpo da requisição.
@@ -33,6 +36,7 @@ public class LivroController {
     @PostMapping
     public ResponseEntity<Livro> criarLivro(@RequestBody Livro livro) {
         Livro novoLivro = livroRepository.save(livro);
+        jmsProducer.sendMessage("CREATE", novoLivro);
         return new ResponseEntity<>(novoLivro, HttpStatus.CREATED);
     }
 
@@ -76,6 +80,7 @@ public class LivroController {
                     livroExistente.setAutores(livroAtualizado.getAutores());
                     livroExistente.setCategoria(livroAtualizado.getCategoria());
                     Livro salvo = livroRepository.save(livroExistente);
+                    jmsProducer.sendMessage("UPDATE", salvo);
                     return ResponseEntity.ok(salvo);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -87,12 +92,14 @@ public class LivroController {
      * @return ResponseEntity com status 204 NO CONTENT em caso de sucesso, ou 404 NOT FOUND se o livro não existir.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarLivro(@PathVariable String id) {
-        if (!livroRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        livroRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Object> deletarLivro(@PathVariable String id) {
+        return livroRepository.findById(id)
+                .map(livro -> {
+                    jmsProducer.sendMessage("DELETE", livro);
+                    livroRepository.deleteById(id);
+                    return ResponseEntity.noContent().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**
