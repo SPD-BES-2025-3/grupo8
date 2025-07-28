@@ -1,7 +1,5 @@
 package com.livraria.integrador.model;
 
-import lombok.Data;
-
 import java.time.LocalDateTime;
 
 /**
@@ -11,7 +9,7 @@ import java.time.LocalDateTime;
  * @author Hugo
  * @since 2025-07-20
  */
-@Data
+
 public class Resenha {
 
     /**

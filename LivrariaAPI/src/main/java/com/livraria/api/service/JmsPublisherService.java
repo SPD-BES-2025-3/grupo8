@@ -1,26 +1,29 @@
 package com.livraria.api.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper; // Importe o ObjectMapper do Jackson
 import com.livraria.api.model.Livro;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
-import com.google.gson.Gson;
-
 import javax.jms.TextMessage;
 
 @Service
 public class JmsPublisherService {
 
-    // Fila de saída: da API para o Integrador
     private static final String QUEUE_NAME = "API_PARA_DESKTOP_QUEUE";
 
     @Autowired
     private JmsTemplate jmsTemplate;
 
+    // O Spring Boot injeta automaticamente um ObjectMapper já configurado
+    @Autowired
+    private ObjectMapper objectMapper;
+
     public void publicarMensagem(String operacao, Livro livro) {
         try {
-            String jsonPayload = new Gson().toJson(livro);
-
+            // *** CORREÇÃO AQUI: Usando ObjectMapper (Jackson) em vez de Gson ***
+            String jsonPayload = objectMapper.writeValueAsString(livro);
+            
             jmsTemplate.send(QUEUE_NAME, messageCreator -> {
                 TextMessage message = messageCreator.createTextMessage(jsonPayload);
                 message.setStringProperty("operacao", operacao);
@@ -30,7 +33,8 @@ public class JmsPublisherService {
             });
             System.out.println("[API Publisher] Mensagem JMS enviada para a fila '" + QUEUE_NAME + "'. Operação: " + operacao);
         } catch (Exception e) {
-            System.err.println("ERRO: Falha ao publicar mensagem da API. " + e.getMessage());
+            // O erro original acontecia aqui. Agora não deve mais.
+            System.err.println("ERRO: Falha ao serializar e publicar mensagem da API. " + e.getMessage());
         }
     }
 }

@@ -3,9 +3,9 @@
   <properties>
     <property name="jansi.mode" value="force"/>
     <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
-    <property name="java.vm.version" value="21.0.7+6-Ubuntu-0ubuntu124.04"/>
+    <property name="java.vm.version" value="21.0.8+9-Ubuntu-0ubuntu124.04.1"/>
     <property name="sun.boot.library.path" value="/usr/lib/jvm/java-21-openjdk-amd64/lib"/>
-    <property name="maven.multiModuleProjectDirectory" value="/mnt/d/Documents/FACULDADE CC/12º SEMESTRE-(2025-2)/SPD/TrabalhoFinal/LivrariaDesktop/biblioteca-desktop-app"/>
+    <property name="maven.multiModuleProjectDirectory" value="/mnt/d/Documents/FACULDADE CC/12º SEMESTRE-(2025-2)/SPD/TF3-INTEGRADOR/grupo8/biblioteca-desktop-app"/>
     <property name="java.vm.vendor" value="Ubuntu"/>
     <property name="java.vendor.url" value="https://ubuntu.com/"/>
     <property name="guice.disable.misplaced.annotation.check" value="true"/>
@@ -13,9 +13,9 @@
     <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="user.dir" value="/mnt/d/Documents/FACULDADE CC/12º SEMESTRE-(2025-2)/SPD/TrabalhoFinal/LivrariaDesktop/biblioteca-desktop-app"/>
+    <property name="user.dir" value="/mnt/d/Documents/FACULDADE CC/12º SEMESTRE-(2025-2)/SPD/TF3-INTEGRADOR/grupo8/biblioteca-desktop-app"/>
     <property name="java.vm.compressedOopsMode" value="32-bit"/>
-    <property name="java.runtime.version" value="21.0.7+6-Ubuntu-0ubuntu124.04"/>
+    <property name="java.runtime.version" value="21.0.8+9-Ubuntu-0ubuntu124.04.1"/>
     <property name="os.arch" value="amd64"/>
     <property name="java.io.tmpdir" value="/tmp"/>
     <property name="line.separator" value="
@@ -47,12 +47,12 @@
     <property name="user.language" value="en"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
     <property name="java.vm.info" value="mixed mode, sharing"/>
-    <property name="java.version" value="21.0.7"/>
+    <property name="java.version" value="21.0.8"/>
     <property name="native.encoding" value="UTF-8"/>
     <property name="java.vendor" value="Ubuntu"/>
     <property name="maven.home" value="/usr/share/maven"/>
     <property name="file.separator" value="/"/>
-    <property name="java.version.date" value="2025-04-15"/>
+    <property name="java.version.date" value="2025-07-15"/>
     <property name="java.vendor.url.bug" value="https://bugs.launchpad.net/ubuntu/+source/openjdk-21"/>
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="sun.cpu.endian" value="little"/>

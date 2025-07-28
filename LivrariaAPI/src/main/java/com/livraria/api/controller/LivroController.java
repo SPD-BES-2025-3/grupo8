@@ -1,6 +1,6 @@
 package com.livraria.api.controller;
 
-import com.livraria.api.service.JmsProducerService;
+import com.livraria.api.service.JmsPublisherService;
 import com.livraria.api.model.Livro;
 import com.livraria.api.model.Resenha;
 import com.livraria.api.repository.LivroRepository;
@@ -26,7 +26,7 @@ public class LivroController {
     private LivroRepository livroRepository;
 
     @Autowired
-    private JmsProducerService jmsProducer;
+    private JmsPublisherService jmsPublisherService; 
 
     /**
      * Cria um novo livro no banco de dados.
@@ -36,7 +36,7 @@ public class LivroController {
     @PostMapping
     public ResponseEntity<Livro> criarLivro(@RequestBody Livro livro) {
         Livro novoLivro = livroRepository.save(livro);
-        jmsProducer.sendMessage("CREATE", novoLivro);
+        jmsPublisherService.publicarMensagem("CREATE", novoLivro); 
         return new ResponseEntity<>(novoLivro, HttpStatus.CREATED);
     }
 
@@ -80,7 +80,7 @@ public class LivroController {
                     livroExistente.setAutores(livroAtualizado.getAutores());
                     livroExistente.setCategoria(livroAtualizado.getCategoria());
                     Livro salvo = livroRepository.save(livroExistente);
-                    jmsProducer.sendMessage("UPDATE", salvo);
+                    jmsPublisherService.publicarMensagem("UPDATE", salvo);
                     return ResponseEntity.ok(salvo);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -95,7 +95,7 @@ public class LivroController {
     public ResponseEntity<Object> deletarLivro(@PathVariable String id) {
         return livroRepository.findById(id)
                 .map(livro -> {
-                    jmsProducer.sendMessage("DELETE", livro);
+                    jmsPublisherService.publicarMensagem("DELETE", livro);
                     livroRepository.deleteById(id);
                     return ResponseEntity.noContent().build();
                 })
