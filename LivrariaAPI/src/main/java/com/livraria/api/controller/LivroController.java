@@ -1,6 +1,6 @@
 package com.livraria.api.controller;
 
-import com.livraria.api.service.JmsPublisherService;
+import com.livraria.api.util.JmsPublisher;
 import com.livraria.api.model.Livro;
 import com.livraria.api.model.Resenha;
 import com.livraria.api.repository.LivroRepository;
@@ -25,9 +25,6 @@ public class LivroController {
     @Autowired
     private LivroRepository livroRepository;
 
-    @Autowired
-    private JmsPublisherService jmsPublisherService; 
-
     /**
      * Cria um novo livro no banco de dados.
      * @param livro O objeto Livro a ser criado, vindo do corpo da requisição.
@@ -36,7 +33,7 @@ public class LivroController {
     @PostMapping
     public ResponseEntity<Livro> criarLivro(@RequestBody Livro livro) {
         Livro novoLivro = livroRepository.save(livro);
-        jmsPublisherService.publicarMensagem("CREATE", novoLivro); 
+        JmsPublisher.publicarMensagem("CREATE", novoLivro); 
         return new ResponseEntity<>(novoLivro, HttpStatus.CREATED);
     }
 
@@ -80,7 +77,7 @@ public class LivroController {
                     livroExistente.setAutores(livroAtualizado.getAutores());
                     livroExistente.setCategoria(livroAtualizado.getCategoria());
                     Livro salvo = livroRepository.save(livroExistente);
-                    jmsPublisherService.publicarMensagem("UPDATE", salvo);
+                    JmsPublisher.publicarMensagem("UPDATE", salvo);
                     return ResponseEntity.ok(salvo);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -95,7 +92,7 @@ public class LivroController {
     public ResponseEntity<Object> deletarLivro(@PathVariable String id) {
         return livroRepository.findById(id)
                 .map(livro -> {
-                    jmsPublisherService.publicarMensagem("DELETE", livro);
+                    JmsPublisher.publicarMensagem("DELETE", livro);
                     livroRepository.deleteById(id);
                     return ResponseEntity.noContent().build();
                 })

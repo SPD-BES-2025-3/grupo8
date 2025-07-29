@@ -13,7 +13,7 @@ public class JmsPublisher {
     public static void publicarMensagem(String operacao, Object entidade) {
         ConnectionFactory factory = new ActiveMQConnectionFactory("admin", "admin", BROKER_URL);
         try (Connection connection = factory.createConnection();
-             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
+            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             Destination destination = session.createQueue(QUEUE_NAME);
             MessageProducer producer = session.createProducer(destination);

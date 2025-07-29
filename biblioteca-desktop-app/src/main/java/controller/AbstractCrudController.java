@@ -384,4 +384,10 @@ public abstract class AbstractCrudController<E, V, ID> {
             deletarButton.setDisable(true);
         }
     }
+
+    public static void refreshAllViews() {
+        for (AbstractCrudController<?, ?, ?> controller : activeControllers) {
+            controller.refreshView();
+        }
+    }
 }

@@ -1,13 +1,16 @@
 package com.livraria.integrador.processor;
 
 import com.google.gson.Gson;
-import com.livraria.integrador.model.LivroApi; // Modelo da API
 import com.livraria.integrador.model.canonico.MapeamentoID;
 import com.livraria.integrador.repository.RepositorioCanonico;
 import com.livraria.integrador.util.DatabaseUpdater;
-import model.Livro; // Modelo do Desktop
+import model.Livro;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+import com.livraria.integrador.model.LivroApi;
+
+import java.util.Date;
+import java.util.UUID;
 
 public class ApiToDesktopProcessor implements Processor {
     @Override
@@ -15,26 +18,45 @@ public class ApiToDesktopProcessor implements Processor {
         String jsonApi = exchange.getIn().getBody(String.class);
         LivroApi livroApi = new Gson().fromJson(jsonApi, LivroApi.class);
 
-        // Usa o ID da API para encontrar o mapeamento
-        MapeamentoID mapeamento = RepositorioCanonico.mapeamentoIdDao.queryBuilder()
-                .where().eq("idApi", livroApi.getId()).queryForFirst();
+        String operacao = exchange.getIn().getHeader("operacao", String.class);
+        String idApi = exchange.getIn().getHeader("idApi", String.class);
 
-        if (mapeamento == null) {
-            System.out.println("AVISO: Mapeamento não encontrado para o livro da API ID: " + livroApi.getId() + ". Ignorando sincronização para o desktop.");
-            exchange.setRouteStop(true); // Para a execução desta rota
+        MapeamentoID mapeamento = RepositorioCanonico.mapeamentoIdDao.queryBuilder()
+            .where().eq("idApi", idApi).queryForFirst();
+        
+        Integer idDesktop = 0; // Padrão para CREATE
+
+        if (mapeamento != null) {
+            // Se o mapeamento existe, usamos o ID do desktop correspondente
+            idDesktop = mapeamento.getIdDesktop();
+        } else if (!"CREATE".equals(operacao)) {
+            // Se é um UPDATE ou DELETE e o mapeamento não existe, é um erro.
+            System.err.println("ERRO: Mapeamento não encontrado para o livro da API ID: " + idApi + ". Sincronização de UPDATE/DELETE falhou.");
+            exchange.setRouteStop(true);
             return;
         }
 
-        // Transforma para o modelo do Desktop
-        Livro livroDesktop = new Livro();
-        livroDesktop.setId(mapeamento.getIdDesktop()); // Usa o ID mapeado!
-        livroDesktop.setTitulo(livroApi.getTitulo());
-        livroDesktop.setIsbn(livroApi.getIsbn());
-        // ... Mapeie todos os outros campos
+        // Chama o utilitário para realizar a operação no banco de dados do Desktop
+        Livro livroSalvoNoDesktop = DatabaseUpdater.sincronizarLivro(livroApi, idDesktop, operacao);
 
-        // Ação: Chamar o DatabaseUpdater para persistir a mudança no SQLite
-        String operacao = exchange.getIn().getHeader("operacao", String.class);
+        // Se a operação foi um DELETE, removemos o mapeamento
+        if ("DELETE".equals(operacao) && mapeamento != null) {
+            RepositorioCanonico.mapeamentoIdDao.delete(mapeamento);
+            System.out.println("Mapeamento removido após DELETE vindo da API.");
+        }
 
-        DatabaseUpdater.sincronizarLivro(livroDesktop, operacao);
+        // *** LÓGICA CRÍTICA ADICIONADA AQUI ***
+        // Se foi uma criação a partir da API, precisamos criar o mapeamento agora.
+        if (mapeamento == null && "CREATE".equals(operacao) && livroSalvoNoDesktop != null) {
+            String idCanonico = UUID.randomUUID().toString();
+            MapeamentoID novoMapeamento = new MapeamentoID();
+            novoMapeamento.setIdCanonico(idCanonico);
+            novoMapeamento.setIdApi(livroApi.getId());
+            novoMapeamento.setIdDesktop(livroSalvoNoDesktop.getId()); // Usa o novo ID retornado pelo updater!
+            novoMapeamento.setUltimaAtualizacao(new Date());
+            
+            RepositorioCanonico.mapeamentoIdDao.create(novoMapeamento);
+            System.out.println("Novo mapeamento criado a partir da API. ID Canônico: " + idCanonico);
+        }
     }
 }
