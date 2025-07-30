@@ -25,7 +25,7 @@ public class LivrariaRouteBuilder extends RouteBuilder {
             .choice()
                 .when(header("entidade").isEqualTo("Livro"))
                     .process(new DesktopToApiProcessor())
-                    .setHeader("Content-Type", constant("application/json"))
+                    .setHeader(Exchange.CONTENT_TYPE, constant("application/json; charset=UTF-8"))
                     .choice()
                         .when(header("operacao").isEqualTo("CREATE"))
                             .log("Enviando POST para /api/livros com corpo: ")

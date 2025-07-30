@@ -14,8 +14,7 @@ public class LivroApi {
     private String sinopse;
     private List<String> autores;
     private String categoria;
-
-    private List<Resenha> resenhas = new ArrayList<>();
+    private List<ResenhaApi> resenhas = new ArrayList<>();
 
     public String getId() {
         return id;
@@ -89,13 +88,11 @@ public class LivroApi {
         this.categoria = categoria;
     }
 
-    public List<Resenha> getResenhas() {
+    public List<ResenhaApi> getResenhas() {
         return resenhas;
     }
 
-    public void setResenhas(List<Resenha> resenhas) {
+    public void setResenhas(List<ResenhaApi> resenhas) {
         this.resenhas = resenhas;
     }
-
-    
 }

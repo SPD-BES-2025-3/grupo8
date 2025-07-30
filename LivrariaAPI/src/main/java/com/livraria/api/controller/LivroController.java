@@ -76,6 +76,7 @@ public class LivroController {
                     livroExistente.setSinopse(livroAtualizado.getSinopse());
                     livroExistente.setAutores(livroAtualizado.getAutores());
                     livroExistente.setCategoria(livroAtualizado.getCategoria());
+                    livroExistente.setResenhas(livroAtualizado.getResenhas());
                     Livro salvo = livroRepository.save(livroExistente);
                     JmsPublisher.publicarMensagem("UPDATE", salvo);
                     return ResponseEntity.ok(salvo);

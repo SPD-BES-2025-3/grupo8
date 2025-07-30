@@ -18,6 +18,7 @@ controller/UsuarioController.class
 controller/LivroController.class
 model/Categoria.class
 model/Livro.class
+model/dto/ResenhaSyncDto.class
 model/JmsPublisher.class
 model/Repositorios.class
 model/Emprestimo.class

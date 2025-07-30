@@ -1,6 +1,7 @@
 package com.livraria.api.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature; // Importe esta classe
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.livraria.api.model.Livro;
 import org.apache.activemq.ActiveMQConnectionFactory;
@@ -14,13 +15,15 @@ public class JmsPublisher {
     private static final String BROKER_URL = "tcp://localhost:61616";
     private static final String QUEUE_NAME = "API_PARA_DESKTOP_QUEUE";
     
-    // ObjectMapper é a biblioteca padrão do Spring para JSON.
-    // Criamos uma instância estática para reutilização.
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    // Bloco estático para configurar o ObjectMapper uma única vez
     static {
-        // Registra o módulo para lidar com tipos de data/hora do Java 8+, como LocalDateTime
+        // Registra o módulo para lidar com tipos de data/hora do Java 8+
         objectMapper.registerModule(new JavaTimeModule());
+        // *** CORREÇÃO AQUI: Desabilita a escrita de datas como timestamps/arrays ***
+        // Isso força a serialização para o formato de string ISO 8601
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     public static void publicarMensagem(String operacao, Livro livro) {
@@ -31,7 +34,7 @@ public class JmsPublisher {
             Destination destination = session.createQueue(QUEUE_NAME);
             MessageProducer producer = session.createProducer(destination);
             
-            // Usando ObjectMapper (Jackson) para serializar, que lida bem com datas
+            // Agora o objectMapper irá gerar a data como uma string
             String jsonPayload = objectMapper.writeValueAsString(livro);
             
             TextMessage message = session.createTextMessage(jsonPayload);

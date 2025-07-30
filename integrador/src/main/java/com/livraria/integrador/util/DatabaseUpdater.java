@@ -4,15 +4,16 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
-import model.Autor;
-import model.Categoria;
-import model.Livro;
-import model.LivroAutor;
-import com.livraria.integrador.model.LivroApi;
+// Importe todos os modelos necessários do seu projeto desktop
+import model.*; 
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
+import com.livraria.integrador.model.LivroApi;
+import com.livraria.integrador.model.ResenhaApi;
 
 public class DatabaseUpdater {
 
@@ -43,6 +44,9 @@ public class DatabaseUpdater {
             Dao<Autor, Integer> autorDao = DaoManager.createDao(connectionSource, Autor.class);
             Dao<Categoria, Integer> categoriaDao = DaoManager.createDao(connectionSource, Categoria.class);
             Dao<LivroAutor, Integer> livroAutorDao = DaoManager.createDao(connectionSource, LivroAutor.class);
+            Dao<Resenha, Integer> resenhaDao = DaoManager.createDao(connectionSource, Resenha.class);
+            Dao<Usuario, Integer> usuarioDao = DaoManager.createDao(connectionSource, Usuario.class);
+            Dao<Cargos, Integer> cargoDao = DaoManager.createDao(connectionSource, Cargos.class);
 
             if ("DELETE".equals(operacao)) {
                 List<LivroAutor> linksParaDeletar = livroAutorDao.queryBuilder().where().eq("livro_id", idDesktop).query();
@@ -54,6 +58,9 @@ public class DatabaseUpdater {
                 return null;
             }
 
+            // --- Lógica de CREATE e UPDATE ---
+            
+            // 1. Sincroniza o Livro principal, Categoria e Autores (lógica existente)
             Livro livroDesktop = new Livro();
             livroDesktop.setId(idDesktop);
             livroDesktop.setTitulo(livroApi.getTitulo());
@@ -77,7 +84,6 @@ public class DatabaseUpdater {
             if (!linksAntigos.isEmpty()) {
                 livroAutorDao.delete(linksAntigos);
             }
-            
             if (livroApi.getAutores() != null) {
                 for (String nomeAutor : livroApi.getAutores()) {
                     Autor autor = autorDao.queryBuilder().where().eq("nome", nomeAutor).queryForFirst();
@@ -87,12 +93,57 @@ public class DatabaseUpdater {
                         autor.setBiografia("");
                         autorDao.create(autor);
                     }
-                    LivroAutor livroAutor = new LivroAutor(livroDesktop, autor);
-                    livroAutorDao.create(livroAutor);
+                    livroAutorDao.create(new LivroAutor(livroDesktop, autor));
                 }
             }
             
-            System.out.println("[DB Updater] Livro ID " + livroDesktop.getId() + " foi sincronizado (CRIADO/ATUALIZADO) no Desktop.");
+            // 2. *** LÓGICA DE SINCRONIZAÇÃO DE RESENHAS ADICIONADA AQUI ***
+            // 2.1. Apaga as resenhas antigas deste livro para garantir consistência total
+            List<Resenha> resenhasAntigas = resenhaDao.queryBuilder().where().eq("livro_id", livroDesktop.getId()).query();
+            if (!resenhasAntigas.isEmpty()) {
+                resenhaDao.delete(resenhasAntigas);
+            }
+
+            // 2.2. Itera e cria as novas resenhas vindas da API
+            if (livroApi.getResenhas() != null) {
+                for (ResenhaApi resenhaApi : livroApi.getResenhas()) {
+                    // Procura o usuário da resenha pelo nome
+                    Usuario usuario = usuarioDao.queryBuilder().where().eq("nome", resenhaApi.getNomeUsuario()).queryForFirst();
+                    
+                    // Se o usuário não existe, cria um novo com o cargo "Cliente"
+                    if (usuario == null) {
+                        Cargos cargoCliente = cargoDao.queryBuilder().where().eq("name", "Cliente").queryForFirst();
+                        if (cargoCliente == null) { // Fallback caso o cargo "Cliente" não exista
+                            cargoCliente = new Cargos();
+                            cargoCliente.setName("Cliente");
+                            cargoDao.create(cargoCliente);
+                        }
+                        usuario = new Usuario();
+                        usuario.setNome(resenhaApi.getNomeUsuario());
+                        usuario.setCargo(cargoCliente);
+                        // Define um email/senha padrão para o novo usuário, pois são campos obrigatórios
+                        usuario.setEmail(resenhaApi.getNomeUsuario().replaceAll("\\s+", "").toLowerCase() + "@email-sync.com");
+                        usuario.setSenha("123456");
+                        usuario.setAtivo(false);
+                        usuarioDao.create(usuario);
+                    }
+
+                    // Cria a nova entidade Resenha para o desktop
+                    Resenha resenhaDesktop = new Resenha();
+                    resenhaDesktop.setLivro(livroDesktop);
+                    resenhaDesktop.setUsuario(usuario);
+                    resenhaDesktop.setNota(resenhaApi.getNota());
+                    resenhaDesktop.setTexto(resenhaApi.getTexto());
+                    if (resenhaApi.getDataAvaliacao() != null) {
+                        // Converte LocalDateTime da API para java.util.Date do Desktop
+                        resenhaDesktop.setDtAvaliacao(Date.from(resenhaApi.getDataAvaliacao().atZone(ZoneId.systemDefault()).toInstant()));
+                    }
+                    
+                    resenhaDao.create(resenhaDesktop);
+                }
+            }
+            
+            System.out.println("[DB Updater] Livro ID " + livroDesktop.getId() + " e suas resenhas foram sincronizados (CRIADO/ATUALIZADO) no Desktop.");
             return livroDesktop;
 
         } catch (Exception e) {
