@@ -50,10 +50,6 @@ public class Repositorio<T, ID> {
     public T create(T entity) {
         try {
             dao.create(entity);
-            // Publica a mensagem após o sucesso da operação
-            if (entity instanceof Livro) { // Apenas publica para entidades relevantes
-                JmsPublisher.publicarMensagem("CREATE", entity);
-            }
             return entity;
         } catch (SQLException e) {
             System.err.println("Erro ao criar: " + e.getMessage());
@@ -69,10 +65,6 @@ public class Repositorio<T, ID> {
     public void update(T entity) {
         try {
             dao.update(entity);
-            // Publica a mensagem após o sucesso da operação
-            if (entity instanceof Livro) {
-                JmsPublisher.publicarMensagem("UPDATE", entity);
-            }
         } catch (SQLException e) {
             System.err.println("Erro ao atualizar: " + e.getMessage());
         }
@@ -86,10 +78,6 @@ public class Repositorio<T, ID> {
     public void delete(T entity) {
         try {
             dao.delete(entity);
-            // Publica a mensagem após o sucesso da operação
-            if (entity instanceof Livro) {
-                JmsPublisher.publicarMensagem("DELETE", entity);
-            }
         } catch (SQLException e) {
             System.err.println("Erro ao deletar: " + e.getMessage());
         }

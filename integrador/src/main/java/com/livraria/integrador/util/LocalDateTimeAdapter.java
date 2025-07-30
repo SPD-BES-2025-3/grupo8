@@ -4,6 +4,7 @@ import com.google.gson.*;
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.ZonedDateTime;
 
 /**
  * Adaptador para o Gson serializar e desserializar LocalDateTime
@@ -21,6 +22,11 @@ public class LocalDateTimeAdapter implements JsonSerializer<LocalDateTime>, Json
     @Override
     public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
             throws JsonParseException {
-        return LocalDateTime.parse(json.getAsString(), formatter);
+        String dateString = json.getAsString();
+        try {
+            return ZonedDateTime.parse(dateString).toLocalDateTime();
+        } catch (Exception e) {
+            return LocalDateTime.parse(dateString, formatter);
+        }
     }
 }

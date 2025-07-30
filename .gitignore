@@ -1,24 +1,46 @@
-# Compiled class file
-*.class
+# Arquivos e diretórios gerados pelo Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+build/
+dist/
 
-# Log file
+# Arquivos gerados pelo Jar do Maven Wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs e relatórios
 *.log
+hs_err_pid*
+replay_pid*
+/biblioteca-desktop-app/target/surefire-reports/
+/biblioteca-desktop-app/target/test-classes/
 
-# BlueJ files
-*.ctxt
+# Arquivos de IDE (IntelliJ, VS Code, Eclipse)
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.factorypath
+.springBeans
+.sts4-cache
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# Arquivos de Pacote (JARs, etc.) - Evita commit de binários
 *.jar
 *.war
-*.nar
 *.ear
+*.nar
 *.zip
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db

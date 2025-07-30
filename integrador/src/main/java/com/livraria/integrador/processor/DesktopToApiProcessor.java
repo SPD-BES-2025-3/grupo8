@@ -33,8 +33,8 @@ public class DesktopToApiProcessor implements Processor {
     @Override
     public void process(Exchange exchange) throws Exception {
         String jsonDesktopDto = exchange.getIn().getBody(String.class);
-        LivroSyncDto livroDesktopDto = new Gson().fromJson(jsonDesktopDto, LivroSyncDto.class);
-        
+        LivroSyncDto livroDesktopDto = this.gson.fromJson(jsonDesktopDto, LivroSyncDto.class);
+
         exchange.getIn().setHeader("entidadeOriginal", livroDesktopDto);
         exchange.getIn().setHeader("idDesktop", livroDesktopDto.getId());
         

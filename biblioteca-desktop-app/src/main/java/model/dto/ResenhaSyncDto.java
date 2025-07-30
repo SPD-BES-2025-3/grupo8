@@ -1,8 +1,8 @@
 package model.dto;
 
 import model.Resenha;
-import java.text.SimpleDateFormat;
-import java.util.TimeZone;
+import java.time.format.DateTimeFormatter;
+
 
 public class ResenhaSyncDto {
     private String texto;
@@ -20,9 +20,9 @@ public class ResenhaSyncDto {
             dto.nomeUsuario = resenha.getUsuario().getNome();
         }
         if (resenha.getDtAvaliacao() != null) {
-            SimpleDateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            isoFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-            dto.dataAvaliacao = isoFormat.format(resenha.getDtAvaliacao());
+            // CORREÇÃO: Use o novo DateTimeFormatter do Java 8+ para consistência
+            DateTimeFormatter isoFormat = DateTimeFormatter.ISO_INSTANT;
+            dto.dataAvaliacao = isoFormat.format(resenha.getDtAvaliacao().toInstant());
         }
         return dto;
     }
