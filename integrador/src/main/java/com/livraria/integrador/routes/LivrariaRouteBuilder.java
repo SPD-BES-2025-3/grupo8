@@ -13,7 +13,7 @@ public class LivrariaRouteBuilder extends RouteBuilder {
     @Override
     public void configure() throws Exception {
         // Configura a conexão com o broker ActiveMQ
-        ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("tcp://activemq:61616");
         factory.setUserName("admin");
         factory.setPassword("admin");
         getContext().addComponent("jms", JmsComponent.jmsComponentAutoAcknowledge(factory));
@@ -31,15 +31,15 @@ public class LivrariaRouteBuilder extends RouteBuilder {
                         .when(header("operacao").isEqualTo("CREATE"))
                             .log("Enviando POST para /api/livros com corpo: ")
                             .setHeader(Exchange.HTTP_METHOD, constant("POST"))
-                            .to("http://localhost:8080/api/livros?bridgeEndpoint=true&throwExceptionOnFailure=false")
+                            .to("http://livraria-api:8080/api/livros?bridgeEndpoint=true&throwExceptionOnFailure=false")
                         .when(header("operacao").isEqualTo("UPDATE"))
                             .log("Enviando PUT para /api/livros/${header.idApi} com corpo: ")
                             .setHeader(Exchange.HTTP_METHOD, constant("PUT"))
-                            .toD("http://localhost:8080/api/livros/${header.idApi}?bridgeEndpoint=true&throwExceptionOnFailure=false")
+                            .toD("http://livraria-api:8080/api/livros/${header.idApi}?bridgeEndpoint=true&throwExceptionOnFailure=false")
                         .when(header("operacao").isEqualTo("DELETE"))
                             .log("Enviando DELETE para /api/livros/${header.idApi}")
                             .setHeader(Exchange.HTTP_METHOD, constant("DELETE"))
-                            .toD("http://localhost:8080/api/livros/${header.idApi}?bridgeEndpoint=true&throwExceptionOnFailure=false")
+                            .toD("http://livraria-api:8080/api/livros/${header.idApi}?bridgeEndpoint=true&throwExceptionOnFailure=false")
                     .end()
                     .process(new PersistenciaCanonicoProcessor()))
                 .otherwise()

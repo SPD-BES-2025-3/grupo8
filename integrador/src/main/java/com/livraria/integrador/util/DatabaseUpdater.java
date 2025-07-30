@@ -21,20 +21,8 @@ public class DatabaseUpdater {
 
     // Bloco estático para calcular o caminho dinamicamente uma única vez
     static {
-        // Pega o diretório de onde o JAR do integrador está sendo executado.
-        Path currentRelativePath = Paths.get("");
-        String currentAbsolutePath = currentRelativePath.toAbsolutePath().toString();
-        
-        System.out.println("[DB Updater] Diretório de execução do Integrador: " + currentAbsolutePath);
-
-        // Constrói o caminho relativo para o banco de dados do desktop,
-        // assumindo que 'integrador' e 'biblioteca-desktop-app' são pastas irmãs.
-        Path dbPath = Paths.get(currentAbsolutePath, "..", "biblioteca-desktop-app", "biblioteca_desktop.sqlite");
-        
-        // Normaliza o caminho para resolver ".." e criar um caminho limpo e absoluto.
-        String normalizedDbPath = dbPath.normalize().toString();
-        
-        DESKTOP_DB_URL = "jdbc:sqlite:" + normalizedDbPath;
+        String dbPathInContainer = "/app/desktop/biblioteca_desktop.sqlite";
+        DESKTOP_DB_URL = "jdbc:sqlite:" + dbPathInContainer;
         System.out.println("[DB Updater] Conectando ao banco de dados do Desktop em: " + DESKTOP_DB_URL);
     }
 

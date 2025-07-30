@@ -8,7 +8,7 @@ import javax.jms.*;
 
 public class JmsPublisher {
 
-    private static final String BROKER_URL = "tcp://localhost:61616";
+    private static final String BROKER_URL = "tcp://localhost:61617";
     private static final String QUEUE_NAME = "DESKTOP_PARA_API_QUEUE";
 
     // *** CORREÇÃO AQUI: Criando uma instância do Gson configurada para evitar problemas de encoding ***
