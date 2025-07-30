@@ -21,11 +21,12 @@ fi
 echo "========================================="
 echo "INICIANDO SERVIÇOS DE BACKEND COM DOCKER COMPOSE..."
 echo "========================================="
-docker-compose up --build -d
+# Usa o comando moderno "docker compose" (com espaço)
+docker compose up --build -d
 
 echo "========================================="
-echo "Backend iniciado. Para ver os logs, use: docker-compose logs -f"
-echo "Para parar os serviços, use: docker-compose down"
+echo "Backend iniciado. Para ver os logs, use: docker compose logs -f"
+echo "Para parar os serviços, use: docker compose down"
 echo "========================================="
 echo ""
 echo "========================================="
@@ -35,4 +36,5 @@ mvn javafx:run -f biblioteca-desktop-app/pom.xml
 
 # Quando a aplicação desktop for fechada, para os containers do backend
 echo "Aplicação Desktop fechada. Parando os serviços do Docker..."
-docker-compose down
+# Usa o comando moderno "docker compose" (com espaço)
+docker compose down
