@@ -12,7 +12,7 @@ import javax.jms.*;
  */
 public class JmsPublisher {
 
-    private static final String BROKER_URL = "tcp://localhost:61616";
+    private static final String BROKER_URL = "tcp://activemq:61616";
     private static final String QUEUE_NAME = "API_PARA_DESKTOP_QUEUE";
     
     private static final ObjectMapper objectMapper = new ObjectMapper();

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Serviço do Banco de Dados MongoDB
+  mongo:
+    image: mongo
+    container_name: mongo-livraria-projeto # Nome alterado para evitar conflito de nome
+    ports:
+      - "27018:27017" # ALTERADO: Mapeia a porta 27018 do seu PC para a 27017 do container
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - livraria-net
+
+  # Serviço da Fila de Mensagens ActiveMQ
+  activemq:
+    image: rmohr/activemq
+    container_name: activemq-livraria-projeto # Nome alterado para evitar conflito de nome
+    ports:
+      - "8162:8161"  # ALTERADO: Console Web agora na porta 8162 do seu PC
+      - "61617:61616" # ALTERADO: Broker JMS agora na porta 61617 do seu PC
+    environment:
+      - ACTIVEMQ_ADMIN_LOGIN=admin
+      - ACTIVEMQ_ADMIN_PASSWORD=admin
+    networks:
+      - livraria-net
+
+  # Serviço da sua API
+  livraria-api:
+    build:
+      context: ./LivrariaAPI
+      dockerfile: Dockerfile
+    container_name: livraria-api-service-projeto
+    ports:
+      - "8080:8080" # ALTERADO: API agora na porta 8081 do seu PC
+    depends_on:
+      - mongo
+      - activemq
+    environment:
+      # As configurações internas NÃO MUDAM. A API ainda se conecta ao 'mongo:27017'
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/livrariaDB
+      # ATENÇÃO: Se sua API se conecta ao ActiveMQ, a propriedade seria assim:
+      # - SPRING_ACTIVEMQ_BROKER_URL=tcp://activemq:61616
+    networks:
+      - livraria-net
+
+  # Serviço do seu Integrador
+  integrador:
+    build:
+      context: ./integrador
+      dockerfile: Dockerfile
+    container_name: integrador-service-projeto
+    depends_on:
+      - activemq
+      - livraria-api
+    volumes:
+      - ./biblioteca-desktop-app:/app/desktop
+    networks:
+      - livraria-net
+
+# Define a rede que os containers usarão para se comunicar
+networks:
+  livraria-net:
+    driver: bridge
+
+# Define o volume para persistir os dados do MongoDB
+volumes:
+  mongo-data:
