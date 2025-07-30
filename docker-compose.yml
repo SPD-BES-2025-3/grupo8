@@ -45,6 +45,7 @@ services:
       - livraria-net
 
   # Serviço do seu Integrador
+  # Serviço do seu Integrador
   integrador:
     build:
       context: ./integrador
@@ -55,8 +56,10 @@ services:
       - livraria-api
     volumes:
       - ./biblioteca-desktop-app:/app/desktop
+      - ./integrador/data:/data  
     networks:
       - livraria-net
+
 
 # Define a rede que os containers usarão para se comunicar
 networks:
