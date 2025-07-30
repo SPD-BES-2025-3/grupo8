@@ -1,6 +1,6 @@
 package com.livraria.api.controller;
 
-import com.livraria.api.service.JmsProducerService;
+import com.livraria.api.util.JmsPublisher;
 import com.livraria.api.model.Livro;
 import com.livraria.api.model.Resenha;
 import com.livraria.api.repository.LivroRepository;
@@ -25,18 +25,20 @@ public class LivroController {
     @Autowired
     private LivroRepository livroRepository;
 
-    @Autowired
-    private JmsProducerService jmsProducer;
-
     /**
      * Cria um novo livro no banco de dados.
      * @param livro O objeto Livro a ser criado, vindo do corpo da requisição.
      * @return ResponseEntity com o livro criado e status 201 CREATED.
      */
     @PostMapping
-    public ResponseEntity<Livro> criarLivro(@RequestBody Livro livro) {
+    public ResponseEntity<Livro> criarLivro(@RequestBody Livro livro,
+                                            @RequestHeader(value = "X-Message-Source", required = false) String messageSource) {
         Livro novoLivro = livroRepository.save(livro);
-        jmsProducer.sendMessage("CREATE", novoLivro);
+
+        if (!"Integrator".equals(messageSource)) {
+            JmsPublisher.publicarMensagem("CREATE", novoLivro);
+        }
+
         return new ResponseEntity<>(novoLivro, HttpStatus.CREATED);
     }
 
@@ -68,7 +70,8 @@ public class LivroController {
      * @return ResponseEntity com o livro atualizado e status 200 OK, ou status 404 NOT FOUND se o livro não existir.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Livro> atualizarLivro(@PathVariable String id, @RequestBody Livro livroAtualizado) {
+    public ResponseEntity<Livro> atualizarLivro(@PathVariable String id, @RequestBody Livro livroAtualizado,
+                                                @RequestHeader(value = "X-Message-Source", required = false) String messageSource) {
         return livroRepository.findById(id)
                 .map(livroExistente -> {
                     livroExistente.setIsbn(livroAtualizado.getIsbn());
@@ -79,8 +82,11 @@ public class LivroController {
                     livroExistente.setSinopse(livroAtualizado.getSinopse());
                     livroExistente.setAutores(livroAtualizado.getAutores());
                     livroExistente.setCategoria(livroAtualizado.getCategoria());
+                    livroExistente.setResenhas(livroAtualizado.getResenhas());
                     Livro salvo = livroRepository.save(livroExistente);
-                    jmsProducer.sendMessage("UPDATE", salvo);
+                    if (!"Integrator".equals(messageSource)) {
+                        JmsPublisher.publicarMensagem("UPDATE", salvo);
+                    }
                     return ResponseEntity.ok(salvo);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -92,10 +98,13 @@ public class LivroController {
      * @return ResponseEntity com status 204 NO CONTENT em caso de sucesso, ou 404 NOT FOUND se o livro não existir.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Object> deletarLivro(@PathVariable String id) {
+    public ResponseEntity<Object> deletarLivro(@PathVariable String id,
+                                               @RequestHeader(value = "X-Message-Source", required = false) String messageSource) {
         return livroRepository.findById(id)
                 .map(livro -> {
-                    jmsProducer.sendMessage("DELETE", livro);
+                    if (!"Integrator".equals(messageSource)) {
+                        JmsPublisher.publicarMensagem("DELETE", livro);
+                    }
                     livroRepository.deleteById(id);
                     return ResponseEntity.noContent().build();
                 })
@@ -110,12 +119,18 @@ public class LivroController {
      * ou status 404 NOT FOUND se o livro não existir.
      */
     @PostMapping("/{livroId}/resenhas")
-    public ResponseEntity<Livro> adicionarResenha(@PathVariable String livroId, @RequestBody Resenha resenha) {
+    public ResponseEntity<Livro> adicionarResenha(@PathVariable String livroId, @RequestBody Resenha resenha,
+                                                  @RequestHeader(value = "X-Message-Source", required = false) String messageSource) {
         return livroRepository.findById(livroId)
                 .map(livro -> {
                     resenha.setDataAvaliacao(LocalDateTime.now());
                     livro.getResenhas().add(resenha);
                     Livro livroAtualizado = livroRepository.save(livro);
+
+                    if (!"Integrator".equals(messageSource)) {
+                        JmsPublisher.publicarMensagem("UPDATE", livroAtualizado);
+                    }
+
                     return ResponseEntity.ok(livroAtualizado);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());

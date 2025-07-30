@@ -78,6 +78,8 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
             if (livroSalvo == null) return false;
             
             salvarAutoresAssociados(livroSalvo);
+            getRepositorio().getDao().refresh(livroSalvo);
+            JmsPublisher.publicarMensagem("CREATE", livroSalvo);
             return true;
         } catch (Exception e) {
             Alert alert = new Alert(AlertType.ERROR);
@@ -102,6 +104,8 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
             getRepositorio().update(modelItem);
 
             salvarAutoresAssociados(modelItem);
+            getRepositorio().getDao().refresh(modelItem);
+            JmsPublisher.publicarMensagem("UPDATE", modelItem);
             return true;
         } catch (Exception e) {
             Alert alert = new Alert(AlertType.ERROR);
@@ -124,6 +128,8 @@ public class LivroController extends AbstractCrudController<model.Livro, view.Li
         try {
             Livro modelItem = getRepositorio().loadFromId(getIdFromViewModel(viewItem));
             if (modelItem == null) return false;
+
+            JmsPublisher.publicarMensagem("DELETE", modelItem);
 
             // 1. Deletar associações em LivroAutor
             List<LivroAutor> associacoesAutores = new ArrayList<>(modelItem.getAutores());
